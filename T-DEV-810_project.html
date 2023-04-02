@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Aurelien Pellet" />
+  <title>zoidberg2.0</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <base target="_blank">
+  
+  <style type="text/css">
+  /*
+    HEADER
+  */
+  
+  header {
+    height:500px;
+    background: url("images/cover_MSC.jpg") right bottom;
+    background-size: 45%;
+    margin:0px;
+    color: white;
+  }
+  
+  header h1 {
+    padding: 200px 0 0 30px;
+    text-transform: uppercase;
+    color: white;  
+    font-size: 60px;
+    margin:  0;
+  }
+  
+  header p.subtitle {
+    padding: 170px 0 0 30px;
+    margin:  0px;
+    padding-top: 0px;
+    text-transform: uppercase;
+    font-size: 20px;
+  }
+  
+  header p.author {
+    display: none;
+  }
+  
+  
+  
+  
+  /*
+    BLOCKS
+  */
+  
+  .note {
+      border: solid 1px rgb(200, 200, 200);
+      box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+      border-radius:10px;    
+      padding: 10px 10px 10px 20px;
+      margin:30px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      background-color:rgba(255, 0, 0, 0.1);    
+  }
+  .note:before {
+    content: url(images/icon_note_small.png);
+    margin-top:-35px;
+    margin-left:-35px;
+    margin-bottom: -20px;
+  }
+  
+  .warning {
+      border: solid 1px rgb(200, 200, 200);
+      box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+      border-radius:10px;
+      margin:30px 20px 20px 20px;
+      background-color: rgba(88, 147, 193, 0.1);
+      padding: 10px 10px 10px 20px;
+      display: flex;
+      flex-direction: column;
+  }
+  .warning:before {
+    content: url(images/icon_warning_small.png);
+    margin-top:-35px;
+    margin-left:-35px;
+    margin-bottom: -20px;
+  }
+  
+  .info {
+      border: solid 1px rgb(200, 200, 200);
+      box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+      border-radius:10px;    
+      background-color: rgb(255, 255, 255);
+      padding: 10px 10px 10px 20px;
+      margin:30px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+  }
+  .info:before {
+    content: url(images/icon_info_small.png);
+    margin-top:-35px;
+    margin-left:-35px;
+    margin-bottom: -20px;
+  }
+  
+  .tip {
+      border: solid 1px rgb(200, 200, 200);
+      box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+      border-radius:10px;    
+      background-color: rgba(240, 220, 154, 0.1);
+      padding: 10px 10px 10px 20px;
+      margin:30px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+  }
+  .tip:before {
+    content: url(images/icon_tip_small.png);
+    margin-top:-35px;
+    margin-left:-35px;
+    margin-bottom: -20px;
+  }
+  
+  .terminal {
+      border: solid 1px rgb(200, 200, 200);
+      box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+      border-radius:10px;    
+      background-color: rgba(240, 220, 154, 0.1);
+      padding: 10px 10px 10px 20px;
+      margin:30px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+  }
+  .terminal:before {
+    content: url(images/icon_terminal_small.png);
+    margin-top:-35px;
+    margin-left:-35px;
+    margin-bottom: -20px;
+  }
+  
+  /*
+    QUOTE
+  */
+  
+  .quote {
+      border-left: solid 3px rgb(140, 140, 140);
+      border-radius:0 10px 10px 0;    
+      padding: 0px 0px 0px 20px;
+      margin:30px 40px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      background-color:rgba(140, 140, 140, 0.1); 
+      position: relative;   
+  }
+  
+  .quote author {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      font-weight: bold;
+      font-style: normal;
+  }
+  .quote author:before {
+    content: '-- ';
+  }
+  .quote author:after {
+    content: '-- ';
+  }
+  
+  /*
+    COLUMNS
+  */
+  
+  div.column-33 {
+    width:  31%;
+    display: inline-block;
+    min-width: 120px;
+    vertical-align: middle;
+    padding-left:  15px;
+  }
+  div.column-50 {
+    width:  48%;
+    display: inline-block;
+    min-width: 120px;
+    vertical-align: middle;
+    padding-left:  15px;
+  }
+  div.column-66 {
+    width:  65%;
+    display: inline-block;
+    min-width: 120px;
+    vertical-align: middle;
+    padding-left:  15px;
+  }
+  div.column {
+    display: inline-block;
+    min-width: 120px;
+    vertical-align: middle;
+    padding-left:  15px;
+  }
+  div.columns {
+    padding-left:  -15px;
+    text-align: justify;
+    text-justify: inter-word;
+  }
+  
+  
+  
+  /*
+    FOOTER
+  */
+  
+  div.footer {
+    background: #FFFFFF url("images/footer_MSC.jpg") no-repeat;
+    height:  215px;
+  }
+  
+  
+  
+  
+  /*
+    GENERIC
+  */
+  
+  html {
+    font-size: 100%;
+    overflow-y: scroll;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  body {
+    color: #444;
+    font-family: Montserrat-thin, sans-serif;
+    font-size: 12px;
+    margin: auto;
+    padding:  0 10px 0 10px;
+    max-width: 800px;
+    background: #fefefe;
+  }
+  
+  a {
+    color: #016bb3;
+  
+  }
+  
+  a:visited {
+    color: #0b0080;
+  }
+  
+  a:hover {
+    color: #06e;
+  }
+  
+  a:active {
+    color: #faa700;
+  }
+  
+  a:focus {
+    outline: thin dotted;
+  }
+  
+  *::-moz-selection {
+    background: rgba(255, 255, 0, 0.3);
+    color: #000;
+  }
+  
+  *::selection {
+    background: rgba(255, 255, 0, 0.3);
+    color: #000;
+  }
+  
+  a::-moz-selection {
+    background: rgba(255, 255, 0, 0.3);
+    color: #016bb3;
+  }
+  
+  a::selection {
+    background: rgba(255, 255, 0, 0.3);
+    color: #016bb3;
+  }
+  
+  p {
+    margin: 1em 0;
+  }
+  
+  img {
+    max-width: 100%;
+    border-radius: 10px;
+  }
+  
+  h1 {
+    color: #016bb3;
+    line-height: 100%;
+    margin-top: 2em;
+    font-weight: normal;
+    font-size: 3em;
+  }
+  
+  h2 {
+    color: #016bb3;
+    line-height: 110%;
+    margin-top: 2em;
+    font-weight: bold;
+  }
+  
+  h3, h4, h5, h6 {
+    color: #111;
+    line-height: 125%;
+    margin-top: 2em;
+    font-weight: normal;
+  }
+  
+  
+  blockquote {
+    color: #666666;
+    margin: 0;
+    padding-left: 3em;
+    border-left: 0.5em #EEE solid;
+  }
+  
+  hr {
+    display: block;
+    height: 2px;
+    border: 0;
+    border-top: 1px solid #aaa;
+    border-bottom: 1px solid #eee;
+    margin: 1em 0;
+    padding: 0;
+  }
+  
+  pre, code, kbd, samp {
+    color: #000;
+    font-family: monospace, monospace;
+    _font-family: 'courier new', monospace;
+    font-size: 0.98em;
+  }
+  
+  pre {
+    white-space: pre;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  b, strong {
+    font-weight: bold;
+  }
+  
+  dfn {
+    font-style: italic;
+  }
+  
+  ins {
+    background: #ff9;
+    color: #000;
+    text-decoration: none;
+  }
+  
+  mark {
+    background: #ff0;
+    color: #000;
+    font-style: italic;
+    font-weight: bold;
+  }
+  
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  
+  sup {
+    top: -0.5em;
+  }
+  
+  sub {
+    bottom: -0.25em;
+  }
+  
+  ul, ol {
+    margin: 1em 0;
+    padding: 0 0 0 2em;
+  }
+  
+  li p:last-child {
+    margin-bottom: 0;
+  }
+  
+  ul ul, ol ol {
+    margin: .3em 0;
+  }
+  
+  dl {
+    margin-bottom: 1em;
+  }
+  
+  dt {
+    font-weight: bold;
+    margin-bottom: .8em;
+  }
+  
+  dd {
+    margin: 0 0 .8em 2em;
+  }
+  
+  dd:last-child {
+    margin-bottom: 0;
+  }
+  
+  img {
+    border: 0;
+    -ms-interpolation-mode: bicubic;
+    vertical-align: middle;
+  }
+  
+  figure {
+    display: block;
+    text-align: center;
+    margin: 1em 0;
+  }
+  
+  figure img {
+    border: none;
+    margin: 0 auto;
+  }
+  
+  figcaption {
+    font-size: 0.8em;
+    font-style: italic;
+    margin: 0 0 .8em;
+  }
+  
+  table {
+    margin-bottom: 2em;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    border-spacing: 0;
+    border-collapse: collapse;
+  }
+  
+  table th {
+    padding: .2em 1em;
+    background-color: #eee;
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+  }
+  
+  table td {
+    padding: .2em 1em;
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+    vertical-align: top;
+  }
+  
+  .author {
+    font-size: 1.2em;
+    text-align: center;
+  }
+  
+  @media only screen and (min-width: 480px) {
+    body {
+      font-size: 14px;
+    }
+  }
+  @media only screen and (min-width: 768px) {
+    body {
+      font-size: 16px;
+    }
+  }
+  @media print {
+    * {
+      background: transparent !important;
+      color: black !important;
+      filter: none !important;
+      -ms-filter: none !important;
+    }
+  
+    a, a:visited {
+      text-decoration: underline;
+    }
+  
+    hr {
+      height: 1px;
+      border: 0;
+      border-bottom: 1px solid black;
+    }
+  
+    a[href]:after {
+      content: " (" attr(href) ")";
+    }
+  
+    abbr[title]:after {
+      content: " (" attr(title) ")";
+    }
+  
+    .ir a:after, a[href^="javascript:"]:after, a[href^="#"]:after {
+      content: "";
+    }
+  
+    pre, blockquote {
+      border: 1px solid #999;
+      padding-right: 1em;
+      page-break-inside: avoid;
+    }
+  
+    tr, img {
+      page-break-inside: avoid;
+    }
+  
+    img {
+      max-width: 100% !important;
+    }
+  
+    @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+  }
+  
+    @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+  }
+  
+    p, h2, h3 {
+      orphans: 3;
+      widows: 3;
+    }
+  
+    h2, h3 {
+      page-break-after: avoid;
+    }
+  }
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">zoidberg2.0</h1>
+<p class="subtitle">Computer aided diagnosis</p>
+<p class="author">Aurelien Pellet</p>
+</header>
+<p>Given some X-ray images, use machine learning to help doctors detecting pneumonia.<br />
+ </p>
+<p><span class="image">DocAI</span></p>
+<p>Doctors granted you access to <a href="https://epitechfr.sharepoint.com/:f:/r/sites/TDEV810/Documents%20partages/datasets?csf=1&amp;e=3ghePT">3 datasets</a>.</p>
+<div class="tip">
+<p>It’s up to you to decide when and how to use the dataset (training, testing, evaluating performance, tuning parameters, …).</p>
+</div>
+<p>You must:</p>
+<ul>
+<li><p>use a train-validation-test procedure,</p></li>
+<li><p>use a cross validation procedure,</p></li>
+<li><p>compare your results with a simple train test split,</p></li>
+<li><p>use one of the datasets to tune your algorithms.</p></li>
+</ul>
+<p>You MUST explore and test various methods, <strong>and to compare results</strong>.</p>
+<div class="tip">
+<p>optimization, feature engineering, metrics, PCA</p>
+</div>
+<div class="warning">
+<p>A clear and concise way to present results should always prevail.</p>
+</div>
+
+<h2 id="delivery">Delivery</h2>
+<p>You are expected to deliver:</p>
+<ul>
+<li><p>technical documents<br />
+a <strong>Jupyter notebook-like file</strong>, containing code and text, possibly graphics and an <strong>html-file</strong> to prove your results without rerunning the code</p></li>
+<li><p>a synthesis document<br />
+a <strong>pdf file</strong> to sum up your results and figures</p></li>
+</ul>
+<div class="tip">
+<p>There are ways to save a trained algorithm and load it afterwards in order to obtain the same results when you run it again!</p>
+</div>
+<h2 id="bonus">Bonus</h2>
+<p>You can improve your project in many ways, including:</p>
+<ul>
+<li><p>implementing a self-organizing map to help you visualize your result,</p></li>
+<li><p>thorough learning through neural networks,</p></li>
+<li><p>predicting on 3 classes: no pneumonia, virus pneumonia, bacteria pneumonia,</p></li>
+<li><p>…</p></li>
+</ul>
+<p> <br />
+<span class="image">zoidberg</span></p>
+
+<h2 id="recommandations">Recommandations</h2>
+<h3 id="time-and-space"><strong>Time and space</strong></h3>
+<p>Think carefully about needed resources (such as the complexity, for execution and for storage) <strong>before</strong> starting implementation. For quicker or better results, you may <em>-or may not-</em> want to transform your data.</p>
+<div class="tip">
+<p>Some libraries could help you.</p>
+</div>
+<h3 id="bad-habits"><strong>Bad habits</strong></h3>
+<p>Do not let your algorithm(s) make bad habits. Find the correct balance between <strong>bias</strong> and <strong>variance</strong>. Cross validation procedures can help you solve this problem. It’s also a good idea when you don’t have a lot of data.<br />
+Algorithms’ parameters can also help you to find a trade-off between bias and variance, this is why you need a good understanding on how they work.</p>
+<h3 id="good-metrics"><strong>Good metrics</strong></h3>
+<p>Find an explicit way to show your results<!--(confusion matrix)-->, in a readable way.<br />
+You must choose among many various metrics and <strong>select the appropriate one(s)</strong>.</p>
+<p>Look at more advanced metrics like ROC-AUC score.<br />
+It will give you a deeper understanding of your results.<br />
+You should also be able to explain what AUC measures and its advantages over other metrics.</p>
+<!--accuracy, recall precision, AUC-ROC-->
+<div class="tip">
+<p>First ML project!? You should dig a bit and find answers: the only way out is the way in!</p>
+</div>
+<div class="footer"></div>
+</body>
+</html>
