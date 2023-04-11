@@ -2,6 +2,8 @@ import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import pandas as pd
+import seaborn as sns
 
 
 train_dir = pathlib.Path('chest_Xray/train')
@@ -41,6 +43,53 @@ validation_dataset = tf.keras.utils.image_dataset_from_directory(
 class_names=training_dataset.class_names
 
 print(class_names)
+
+print("\n###LOGGER START###")
+print("Training  dataset:\n")
+print(training_dataset)
+print(training_dataset.options)
+print(class_names)
+print(training_dataset.element_spec)
+for element in training_dataset.take(3):
+    print(element[0].shape) # Inputs
+    print(element[1].shape) # Labels
+print(len(list(training_dataset.as_numpy_iterator())))
+print("You may get surprised to see 163 and not 5216 but remember that we batched our dataset into batch of 32 elements. 5216/32 = 163")
+batch_sizes = [batch.shape[0] for _, batch in training_dataset]
+plt.bar(range(len(batch_sizes)), batch_sizes)
+plt.xlabel('Batch number')
+plt.ylabel('Batch size')
+plt.show()
+print("\n###LOGGER END###")
+
+y_test = []
+for _, label in test_dataset.unbatch().as_numpy_iterator():
+    y_test.append(label[0])
+# print(y_labels)
+# print(len(y_labels ))
+
+y_train = []
+for _, label in training_dataset.unbatch().as_numpy_iterator():
+    y_train.append(label[0])
+# print(y_train)
+# print(len(y_train ))
+
+plt.figure(figsize=(20, 10))
+
+plt.subplot(1, 2, 1)
+sns.countplot(x=y_train)
+plt.title("Frequency distribution (training dataset)")
+plt.xlabel("Binary categorical values")
+plt.ylabel("Frequency")
+
+plt.subplot(1, 2, 2)
+sns.countplot(x=y_test)
+plt.title("Frequency distribution (testing dataset)")
+plt.xlabel("Binary categorical values")
+plt.ylabel("Frequency")
+
+plt.show()
+
 
 plt.figure(figsize=(10, 10))
 for images, labels in training_dataset.take(3):
