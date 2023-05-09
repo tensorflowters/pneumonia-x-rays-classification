@@ -6,6 +6,3 @@ listenv:
 
 addPyLib:
 	@python3.9 -m pip install ${LIB_NAME}
-
-load:
-	@python3.9 datasets/load.py
