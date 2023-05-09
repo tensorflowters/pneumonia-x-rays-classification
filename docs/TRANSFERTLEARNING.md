@@ -14,6 +14,8 @@ It is recommended to start with transfer learning, as it usually provides a good
 
 You can experiment with different pre-trained models and fine-tuning strategies.
 
+&nbsp;
+
 ## Code
 
 To implement transfer learning in TensorFlow, you can use the applications module, which provides pre-trained models with easy-to-use APIs.
