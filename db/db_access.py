@@ -1,7 +1,5 @@
 import os
-import pymongo
 from gridfs import GridFS
-from bson.objectid import ObjectId
 
 
 def download_image(image_id, output_file_path, db):
