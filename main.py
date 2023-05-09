@@ -1,34 +1,16 @@
 import pathlib
-import matplotlib.pyplot as plt
-import numpy as np
 import tensorflow as tf
-import pandas as pd
-import seaborn as sns
+
+from scripts.basic_model import BasicModel
 
 
-train_dir = pathlib.Path("chest_Xray/train")
-test_dir = pathlib.Path("chest_Xray/test")
-val_dir = pathlib.Path("chest_Xray/val")
+print("\n\033[91m============================================================\033[0m")
+print("\033[91m****************************LOGS****************************\033[0m")
+print("\033[91m============================================================\033[0m\n")
 
-training_dataset = tf.keras.utils.image_dataset_from_directory(
-    train_dir,
-    labels="inferred",
-    label_mode="binary",
-    color_mode="grayscale",
-    batch_size=None,
-    image_size=(256, 256),
-    shuffle=True,
-)
 
-test_dataset = tf.keras.utils.image_dataset_from_directory(
-    test_dir,
-    labels="inferred",
-    label_mode="binary",
-    color_mode="grayscale",
-    batch_size=None,
-    image_size=(256, 256),
-    shuffle=True,
-)
+val_dir = pathlib.Path("data/chest_xray/val")
+
 
 validation_dataset = tf.keras.utils.image_dataset_from_directory(
     val_dir,
@@ -41,82 +23,91 @@ validation_dataset = tf.keras.utils.image_dataset_from_directory(
 )
 
 
-class_names = training_dataset.class_names
+class_names = validation_dataset.class_names
 
-training_dataset = training_dataset.batch(32, drop_remainder=True)
-test_dataset = test_dataset.batch(32, drop_remainder=True)
-validation_dataset = validation_dataset.batch(32, drop_remainder=True)
-
-
-print("\n\033[91m###SCRIPT LOGS###\033[0m")
-print("Training  dataset:\n")
-print(training_dataset)
-print(training_dataset.options)
-# print(class_names)
-print(training_dataset.element_spec)
-for element in training_dataset.take(1):
-    print(element[0].shape)  # Inputs
-    print(element[1].shape)  # Labels
-print(len(list(training_dataset.as_numpy_iterator())))
-print(
-    "You may get surprised to see 163 and not 5216 but remember that we batched our dataset into batch of 32 elements. 5216/32 = 163"
-)
-batch_sizes = [batch.shape[0] for _, batch in training_dataset]
-plt.bar(range(len(batch_sizes)), batch_sizes)
-plt.xlabel("Batch number")
-plt.ylabel("Batch size")
-plt.show()
-print("\n###LOGGER END###")
-
-y_test = []
-for _, label in test_dataset.unbatch().as_numpy_iterator():
-    y_test.append(label[0])
-# print(y_labels)
-# print(len(y_labels ))
-
-y_train = []
-for _, label in training_dataset.unbatch().as_numpy_iterator():
-    y_train.append(label[0])
-# print(y_train)
-# print(len(y_train ))
-
-plt.figure(figsize=(20, 10))
-
-plt.subplot(1, 2, 1)
-sns.countplot(x=y_train)
-plt.title("Frequency distribution (training dataset)")
-plt.xlabel("Binary categorical values")
-plt.ylabel("Frequency")
-
-plt.subplot(1, 2, 2)
-sns.countplot(x=y_test)
-plt.title("Frequency distribution (testing dataset)")
-plt.xlabel("Binary categorical values")
-plt.ylabel("Frequency")
-
-plt.show()
-
-
-plt.figure(figsize=(10, 10))
-for images, labels in training_dataset.take(3):
-    for i in range(9):
-        ax = plt.subplot(3, 3, i + 1)
-        plt.imshow(images[i].numpy().astype("uint8"))
-        plt.title(int(labels[i].numpy()[0]))
-        # plt.title(class_names[int(labels[i].numpy()[0])])
-        # print(images[i])
-        # print(labels[i].numpy())
-        plt.axis("off")
-plt.show()
-
-# for image_batch, labels_batch in training_dataset:
-#   print(image_batch.shape)
-#   print(labels_batch.shape)
-#   break
 
 normalization_layer = tf.keras.layers.Rescaling(1.0 / 255)
-normalized_ds = training_dataset.map(lambda x, y: (normalization_layer(x), y))
-image_batch, labels_batch = next(iter(normalized_ds))
-first_image = image_batch[0]
-# Notice the pixel values are now in `[0,1]`.
-# print(np.min(first_image), np.max(first_image))
+
+
+normalized_validation_dataset = validation_dataset.map(lambda x, y: (normalization_layer(x), y))
+
+# Initialize lists for training and testing data
+x_val, y_val = [], []
+
+# Retrieve training data
+for x, y in normalized_validation_dataset:
+    x_val.append(x)
+    y_val.append(y[0])
+
+
+model = BasicModel()
+
+model.get_image()
+model.get_distribution()
+model.get_mean()
+
+model.train(5, x_val, y_val)
+
+# Evaluating the model with the test datasets
+
+
+
+# print("\n\033[92mTraining  dataset:\033[0m")
+# print(training_dataset)
+
+
+# print(f"\nDetected {len(class_names)} classes: {class_names}")
+
+
+# print("\n\033[92mTraining  dataset specs:\033[0m")
+# print(training_dataset.element_spec)
+
+
+# for element in training_dataset.take(1):
+#     print(f"\nThe first input of the training dataset has a shape of {element[0].shape}") # Inputs
+#     print(f"\nThe first label of the training dataset has a shape of {element[1].shape}") # Labels
+
+
+# print(f"\nTraining datasets containing {len(list(training_dataset.as_numpy_iterator()))} elements")
+
+
+# print(
+# """\033[93m
+# You may get surprised to see 163 and not 5216 but remember that we batched our dataset into batch of 32 elements.
+
+# 5216/32 = 163\033[0m
+# """
+# )
+
+
+# batch_sizes = [batch.shape[0] for _, batch in training_dataset]
+
+# plot_batch_number(batch_sizes, "Number", "Size")
+
+
+# y_test = []
+
+# for _, label in test_dataset.unbatch().as_numpy_iterator():
+#     y_test.append(label[0])
+
+
+# y_train = []
+
+# for _, label in training_dataset.unbatch().as_numpy_iterator():
+#     y_train.append(label[0])
+
+
+# plot_distribution(y_train, y_test)
+
+
+# plot_images(training_dataset, class_names)
+
+# first_image = image_batch[0]
+
+
+# print(f"\033[93mNotice the pixel values are now between {np.min(first_image)} and {np.max(first_image)} (0,1)\033[0m")
+
+
+print("\n\033[91m============================================================\033[0m")
+print("\033[91m****************************LOGS****************************\033[0m")
+print("\033[91m============================================================\033[0m\n")
