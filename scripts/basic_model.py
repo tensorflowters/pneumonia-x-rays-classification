@@ -5,11 +5,11 @@ import numpy as np
 from scripts.data_vizualisation import plot_image, plot_distribution, plot_mean
 
 
-class BasicModel(tf.keras.Sequential):
+class BasicModel:
     def __init__(self):
         # Load datasets
         train_dir = pathlib.Path("data/chest_xray/train")
-
+        val_dir = pathlib.Path("data/chest_xray/val")
         test_dir = pathlib.Path("data/chest_xray/test")
 
 
@@ -22,7 +22,15 @@ class BasicModel(tf.keras.Sequential):
             image_size=(256, 256),
             shuffle=True,
         )
-
+        validation_dataset = tf.keras.utils.image_dataset_from_directory(
+            val_dir,
+            labels="inferred",
+            label_mode="binary",
+            color_mode="grayscale",
+            batch_size=None,
+            image_size=(256, 256),
+            shuffle=True,
+        )
         test_dataset = tf.keras.utils.image_dataset_from_directory(
             test_dir,
             labels="inferred",
@@ -35,26 +43,29 @@ class BasicModel(tf.keras.Sequential):
 
 
         training_dataset = training_dataset.batch(32, drop_remainder=True)
-
+        validation_dataset = validation_dataset.batch(2, drop_remainder=True)
         test_dataset = test_dataset.batch(32, drop_remainder=True)
 
 
         normalization_layer = tf.keras.layers.Rescaling(1.0 / 255)
 
         normalized_train_dataset = training_dataset.map(lambda x, y: (normalization_layer(x), y))
-
+        normalized_validation_dataset = validation_dataset.map(lambda x, y: (normalization_layer(x), y))
         normalized_test_dataset = test_dataset.map(lambda x, y: (normalization_layer(x), y))
 
         # Initialize lists for training and testing data
         x_train, y_train = [], []
+        x_val, y_val = [], []
         x_test, y_test = [], []
 
-        # Retrieve training data
         for x, y in normalized_train_dataset.unbatch().as_numpy_iterator():
             x_train.append(x)
             y_train.append(y[0])
 
-        # Retrieve testing data
+        for x, y in normalized_validation_dataset.unbatch().as_numpy_iterator():
+            x_val.append(x)
+            y_val.append(y[0])
+
         for x, y in normalized_test_dataset.unbatch().as_numpy_iterator():
             x_test.append(x)
             y_test.append(y[0])
@@ -62,6 +73,7 @@ class BasicModel(tf.keras.Sequential):
         # Convert lists to numpy arrays
         x_train, y_train = np.array(x_train), np.array(y_train)
         x_test, y_test = np.array(x_test), np.array(y_test)
+        x_val, y_val = np.array(x_val), np.array(y_val)
 
         """
         Scale these values to a range of 0 to 1 before feeding them to the neural network model. 
@@ -69,10 +81,15 @@ class BasicModel(tf.keras.Sequential):
         It's important that the training set and the testing set be preprocessed in the same way.
         """
         
-        # x_train, x_test = x_train / 255.0, x_test / 255.0
-
+        self.train_dataset = normalized_train_dataset
         self.x_train = x_train
         self.y_train = y_train
+
+        self.validation_dataset = normalized_validation_dataset
+        self.x_val = x_val
+        self.y_val = y_val
+
+        self.test_dataset = normalized_test_dataset
         self.x_test = x_test
         self.y_test = y_test
 
@@ -112,7 +129,7 @@ class BasicModel(tf.keras.Sequential):
         model = tf.keras.Sequential([
             tf.keras.layers.Flatten(input_shape=(256, 256)),
             tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(2)
+            tf.keras.layers.Dense(1, activation='sigmoid') # This will output the probability of the input belonging to the positive class.
         ])
 
         """
@@ -123,13 +140,13 @@ class BasicModel(tf.keras.Sequential):
         """
         model.compile(
             optimizer='adam',
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
             metrics=['accuracy']
         )
 
         return model
 
-    def train(self, epochs, x_val, y_val):
+    def train(self, epochs):
         """
         Instanciate the hypermodel with current training and testing datasets.
         Also pass the limit of epochs that could will run in order to find the optimal number of epoch
@@ -144,18 +161,18 @@ class BasicModel(tf.keras.Sequential):
         # Train the model
         print('\nStarting training...')
         # stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-        model.fit(self.x_train, self.y_train, validation_data=(self.x_test, self.y_test),validation_steps=32, validation_freq=1, validation_batch_size=32, epochs=epochs)
+        model.fit(self.x_train, self.y_train, validation_data=self.validation_dataset, epochs=epochs)
         print('\n\033[92mTraining done !\033[0m')
-
-        print('\nEvaluating model...')
-        print('\n')
-        print(f'\n{x_val}')
-        print(f'\n{y_val}')
-        test_loss, test_acc = model.evaluate(x=x_val, y=y_val, verbose=2)
-        print('\nTest loss is: %s' % (test_loss))
-        print('\nTest accurancy is: %s' % (test_acc))
 
         # Save the model so he could be infer an unlimited amount of time without training again
         print('\nSaving...')
         model.save("notebooks/1_train_validation_test_procedure/model_1.h5")
         print('\n\033[92mSaving done !\033[0m')
+
+    
+    def evaluate(self):
+        model = tf.keras.models.load_model("notebooks/1_train_validation_test_procedure/model_1.h5")
+        print('\nEvaluating model...')
+        test_loss, test_acc = model.evaluate(self.test_dataset)
+        print('\nTest loss is: %s' % (test_loss)) 
+        print('\nTest accurancy is: %s' % (test_acc))
