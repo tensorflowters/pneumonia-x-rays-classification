@@ -3,8 +3,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-from scripts.data_vizualisation import plot_image, plot_distribution, plot_mean
+from data_vizualisation import plot_distribution, plot_mean
 
 
 class BasicModel:
@@ -15,59 +14,57 @@ class BasicModel:
 
         train_ds = tf.keras.utils.image_dataset_from_directory(
             train_dir,
-            # labels="inferred",
-            # label_mode="binary",
+            labels="inferred",
+            label_mode="binary",
             validation_split=0.2,
             subset="training",
             seed=123,
-            # color_mode="grayscale",
+            color_mode="grayscale",
             batch_size=32,
-            image_size=(180, 180),
+            image_size=(128, 128),
         )
         val_ds = tf.keras.utils.image_dataset_from_directory(
             train_dir,
-            # labels="inferred",
-            # label_mode="binary",
+            labels="inferred",
+            label_mode="binary",
             validation_split=0.2,
             subset="validation",
             seed=123,
-            # color_mode="grayscale",
+            color_mode="grayscale",
             batch_size=32,
-            image_size=(180, 180),
+            image_size=(128, 128),
         )
         test_ds = tf.keras.utils.image_dataset_from_directory(
             test_dir,
-            # labels="inferred",
-            # label_mode="binary",
-            # color_mode="grayscale",
+            labels="inferred",
+            label_mode="binary",
+            color_mode="grayscale",
             seed=123,
             batch_size=32,
-            image_size=(180, 180),
+            image_size=(128, 128),
         )
 
         class_names = train_ds.class_names
+        self.class_names = class_names
         print(class_names)
 
         for image_batch, labels_batch in train_ds:
+            print(image_batch)
             print(image_batch.shape)
+            print(labels_batch)
             print(labels_batch.shape)
             break
 
+        AUTOTUNE = tf.data.AUTOTUNE
+
+        train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
+        val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
         
         self.train_ds = train_ds
-        # self.train_dataset = normalized_train_dataset
-        # self.x_train = x_train
-        # self.y_train = y_train
 
         self.val_ds = val_ds
-        # self.val_ds = normalized_validation_dataset
-        # self.x_val = x_val
-        # self.y_val = y_val
 
         self.test_ds = test_ds
-        # self.test_ds = normalized_test_dataset
-        # self.x_test = x_test
-        # self.y_test = y_test
 
         self.class_names = class_names
 
@@ -92,37 +89,16 @@ class BasicModel:
 
     """
     Function:
-        The first layer in this network, tf.keras.layers.Flatten, transforms the format of the images from a two-dimensional array (of 256 by 256 pixels)
-        to a one-dimensional array (of 256 * 256 = 65 536 pixels).
-
-        Think of this layer as unstacking rows of pixels in the image and lining them up.
-
-        This layer has no parameters to learn; it only reformats the data.
-
-        After the pixels are flattened, the network consists of a sequence of two tf.keras.layers.Dense layers.
-
-        These are densely connected, or fully connected, neural layers. The first Dense layer has 128 nodes (or neurons).
-
-        The second (and last) layer returns a logits array with length of 2.
-
-        Each node contains a score that indicates the current image belongs to one of the 2 classes.
 
     Args:
-        None
+    
     """
     def build(self):
         model = tf.keras.Sequential([
-            tf.keras.layers.Rescaling(1./255, input_shape=(180, 180, 3)),
-            tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
-            tf.keras.layers.MaxPooling2D(),
-            tf.keras.layers.Conv2D(32, 3, padding='same', activation='relu'),
-            tf.keras.layers.MaxPooling2D(),
-            tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu'),
-            tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.Rescaling(1./255, input_shape=(128, 128, 1)),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(2)
-            # tf.keras.layers.Dense(num_classes)
+            tf.keras.layers.Dense(1, activation='sigmoid')
         ])
 
         """
@@ -133,7 +109,7 @@ class BasicModel:
         """
         model.compile(
             optimizer='adam',
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
             metrics=['accuracy']
         )
 
@@ -151,7 +127,6 @@ class BasicModel:
         
         # Train the model
         print('\nStarting training...')
-        # stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
         history = model.fit(self.train_ds, validation_data=self.val_ds, epochs=epochs)
         print('\n\033[92mTraining done !\033[0m')
 
