@@ -1,101 +1,86 @@
 import pathlib
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 from scripts.data_vizualisation import plot_image, plot_distribution, plot_mean
 
 
 class BasicModel:
     def __init__(self):
-        # Load datasets
         train_dir = pathlib.Path("data/chest_xray/train")
-        val_dir = pathlib.Path("data/chest_xray/val")
         test_dir = pathlib.Path("data/chest_xray/test")
 
 
-        training_dataset = tf.keras.utils.image_dataset_from_directory(
+        train_ds = tf.keras.utils.image_dataset_from_directory(
             train_dir,
-            labels="inferred",
-            label_mode="binary",
-            color_mode="grayscale",
-            batch_size=None,
-            image_size=(256, 256),
-            shuffle=True,
+            # labels="inferred",
+            # label_mode="binary",
+            validation_split=0.2,
+            subset="training",
+            seed=123,
+            # color_mode="grayscale",
+            batch_size=32,
+            image_size=(180, 180),
         )
-        validation_dataset = tf.keras.utils.image_dataset_from_directory(
-            val_dir,
-            labels="inferred",
-            label_mode="binary",
-            color_mode="grayscale",
-            batch_size=None,
-            image_size=(256, 256),
-            shuffle=True,
+        val_ds = tf.keras.utils.image_dataset_from_directory(
+            train_dir,
+            # labels="inferred",
+            # label_mode="binary",
+            validation_split=0.2,
+            subset="validation",
+            seed=123,
+            # color_mode="grayscale",
+            batch_size=32,
+            image_size=(180, 180),
         )
-        test_dataset = tf.keras.utils.image_dataset_from_directory(
+        test_ds = tf.keras.utils.image_dataset_from_directory(
             test_dir,
-            labels="inferred",
-            label_mode="binary",
-            color_mode="grayscale",
-            batch_size=None,
-            image_size=(256, 256),
-            shuffle=True,
+            # labels="inferred",
+            # label_mode="binary",
+            # color_mode="grayscale",
+            seed=123,
+            batch_size=32,
+            image_size=(180, 180),
         )
 
+        class_names = train_ds.class_names
+        print(class_names)
 
-        training_dataset = training_dataset.batch(32, drop_remainder=True)
-        validation_dataset = validation_dataset.batch(2, drop_remainder=True)
-        test_dataset = test_dataset.batch(32, drop_remainder=True)
+        for image_batch, labels_batch in train_ds:
+            print(image_batch.shape)
+            print(labels_batch.shape)
+            break
 
-
-        normalization_layer = tf.keras.layers.Rescaling(1.0 / 255)
-
-        normalized_train_dataset = training_dataset.map(lambda x, y: (normalization_layer(x), y))
-        normalized_validation_dataset = validation_dataset.map(lambda x, y: (normalization_layer(x), y))
-        normalized_test_dataset = test_dataset.map(lambda x, y: (normalization_layer(x), y))
-
-        # Initialize lists for training and testing data
-        x_train, y_train = [], []
-        x_val, y_val = [], []
-        x_test, y_test = [], []
-
-        for x, y in normalized_train_dataset.unbatch().as_numpy_iterator():
-            x_train.append(x)
-            y_train.append(y[0])
-
-        for x, y in normalized_validation_dataset.unbatch().as_numpy_iterator():
-            x_val.append(x)
-            y_val.append(y[0])
-
-        for x, y in normalized_test_dataset.unbatch().as_numpy_iterator():
-            x_test.append(x)
-            y_test.append(y[0])
-
-        # Convert lists to numpy arrays
-        x_train, y_train = np.array(x_train), np.array(y_train)
-        x_test, y_test = np.array(x_test), np.array(y_test)
-        x_val, y_val = np.array(x_val), np.array(y_val)
-
-        """
-        Scale these values to a range of 0 to 1 before feeding them to the neural network model. 
-        To do so, divide the values by 255. 
-        It's important that the training set and the testing set be preprocessed in the same way.
-        """
         
-        self.train_dataset = normalized_train_dataset
-        self.x_train = x_train
-        self.y_train = y_train
+        self.train_ds = train_ds
+        # self.train_dataset = normalized_train_dataset
+        # self.x_train = x_train
+        # self.y_train = y_train
 
-        self.validation_dataset = normalized_validation_dataset
-        self.x_val = x_val
-        self.y_val = y_val
+        self.val_ds = val_ds
+        # self.val_ds = normalized_validation_dataset
+        # self.x_val = x_val
+        # self.y_val = y_val
 
-        self.test_dataset = normalized_test_dataset
-        self.x_test = x_test
-        self.y_test = y_test
+        self.test_ds = test_ds
+        # self.test_ds = normalized_test_dataset
+        # self.x_test = x_test
+        # self.y_test = y_test
+
+        self.class_names = class_names
+
 
     def get_image(self):
-        # Check image content by displaying one digit image from an index input
-        plot_image(self.x_train, self.y_train)
+        plt.figure(figsize=(10, 10))
+        for images, labels in self.train_ds.take(1):
+            for i in range(9):
+                ax = plt.subplot(3, 3, i + 1)
+                plt.imshow(images[i].numpy().astype("uint8"))
+                plt.title(self.class_names[labels[i]])
+                plt.axis("off")
+        plt.show()
 
     def get_distribution(self):
         # Display digit distribution in training and testing datasets
@@ -127,9 +112,17 @@ class BasicModel:
     """
     def build(self):
         model = tf.keras.Sequential([
-            tf.keras.layers.Flatten(input_shape=(256, 256)),
+            tf.keras.layers.Rescaling(1./255, input_shape=(180, 180, 3)),
+            tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
+            tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.Conv2D(32, 3, padding='same', activation='relu'),
+            tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu'),
+            tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(1, activation='sigmoid') # This will output the probability of the input belonging to the positive class.
+            tf.keras.layers.Dense(2)
+            # tf.keras.layers.Dense(num_classes)
         ])
 
         """
@@ -140,29 +133,49 @@ class BasicModel:
         """
         model.compile(
             optimizer='adam',
-            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=['accuracy']
         )
+
+        model.summary()
 
         return model
 
     def train(self, epochs):
         """
-        Instanciate the hypermodel with current training and testing datasets.
-        Also pass the limit of epochs that could will run in order to find the optimal number of epoch
+        
         """
 
-        # Build the model and get or set the search
         model = self.build()
 
-        # First trainign test to find the optimal number of epoch
-        epochs = epochs
-
+        
         # Train the model
         print('\nStarting training...')
         # stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-        model.fit(self.x_train, self.y_train, validation_data=self.validation_dataset, epochs=epochs)
+        history = model.fit(self.train_ds, validation_data=self.val_ds, epochs=epochs)
         print('\n\033[92mTraining done !\033[0m')
+
+        acc = history.history['accuracy']
+        val_acc = history.history['val_accuracy']
+
+        loss = history.history['loss']
+        val_loss = history.history['val_loss']
+
+        epochs_range = range(epochs)
+
+        plt.figure(figsize=(8, 8))
+        plt.subplot(1, 2, 1)
+        plt.plot(epochs_range, acc, label='Training Accuracy')
+        plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+        plt.legend(loc='lower right')
+        plt.title('Training and Validation Accuracy')
+
+        plt.subplot(1, 2, 2)
+        plt.plot(epochs_range, loss, label='Training Loss')
+        plt.plot(epochs_range, val_loss, label='Validation Loss')
+        plt.legend(loc='upper right')
+        plt.title('Training and Validation Loss')
+        plt.show()
 
         # Save the model so he could be infer an unlimited amount of time without training again
         print('\nSaving...')
@@ -173,6 +186,6 @@ class BasicModel:
     def evaluate(self):
         model = tf.keras.models.load_model("notebooks/1_train_validation_test_procedure/model_1.h5")
         print('\nEvaluating model...')
-        test_loss, test_acc = model.evaluate(self.test_dataset)
+        test_loss, test_acc = model.evaluate(self.test_ds)
         print('\nTest loss is: %s' % (test_loss)) 
         print('\nTest accurancy is: %s' % (test_acc))
