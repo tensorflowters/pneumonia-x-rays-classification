@@ -1,21 +1,16 @@
 import pathlib
 import tensorflow as tf
-import numpy as np
 import matplotlib.pyplot as plt
-
-from data_vizualisation import plot_distribution, plot_mean
 
 
 class BasicModel:
     def __init__(self):
-        train_dir = pathlib.Path("data/chest_xray/train")
-        test_dir = pathlib.Path("data/chest_xray/test")
-
+        train_dir = pathlib.Path("data/train")
 
         train_ds = tf.keras.utils.image_dataset_from_directory(
             train_dir,
             labels="inferred",
-            label_mode="binary",
+            label_mode="categorical",
             validation_split=0.2,
             subset="training",
             seed=123,
@@ -26,7 +21,7 @@ class BasicModel:
         val_ds = tf.keras.utils.image_dataset_from_directory(
             train_dir,
             labels="inferred",
-            label_mode="binary",
+            label_mode="categorical",
             validation_split=0.2,
             subset="validation",
             seed=123,
@@ -34,19 +29,9 @@ class BasicModel:
             batch_size=32,
             image_size=(128, 128),
         )
-        test_ds = tf.keras.utils.image_dataset_from_directory(
-            test_dir,
-            labels="inferred",
-            label_mode="binary",
-            color_mode="grayscale",
-            seed=123,
-            batch_size=32,
-            image_size=(128, 128),
-        )
 
         class_names = train_ds.class_names
         self.class_names = class_names
-        print(class_names)
 
         for image_batch, labels_batch in train_ds:
             print(image_batch)
@@ -64,28 +49,26 @@ class BasicModel:
 
         self.val_ds = val_ds
 
-        self.test_ds = test_ds
-
         self.class_names = class_names
 
 
-    def get_image(self):
-        plt.figure(figsize=(10, 10))
-        for images, labels in self.train_ds.take(1):
-            for i in range(9):
-                ax = plt.subplot(3, 3, i + 1)
-                plt.imshow(images[i].numpy().astype("uint8"))
-                plt.title(self.class_names[labels[i]])
-                plt.axis("off")
-        plt.show()
+    # def get_image(self):
+    #     plt.figure(figsize=(10, 10))
+    #     for images, labels in self.train_ds.take(1):
+    #         for i in range(9):
+    #             ax = plt.subplot(3, 3, i + 1)
+    #             plt.imshow(images[i].numpy().astype("uint8"))
+    #             plt.title(self.class_names[labels[i]])
+    #             plt.axis("off")
+    #     plt.show()
 
-    def get_distribution(self):
-        # Display digit distribution in training and testing datasets
-        plot_distribution(self.y_train, self.y_test)
+    # def get_distribution(self):
+    #     # Display digit distribution in training and testing datasets
+    #     plot_distribution(self.y_train, self.y_test)
 
-    def get_mean(self):
-        # Display digit mean occurence in training and testing datasets
-        plot_mean(self.y_train, self.y_test)
+    # def get_mean(self):
+    #     # Display digit mean occurence in training and testing datasets
+    #     plot_mean(self.y_train, self.y_test)
 
     """
     Function:
@@ -98,7 +81,7 @@ class BasicModel:
             tf.keras.layers.Rescaling(1./255, input_shape=(128, 128, 1)),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(1, activation='sigmoid')
+            tf.keras.layers.Dense(len(self.class_names), activation='softmax')
         ])
 
         """
@@ -109,7 +92,7 @@ class BasicModel:
         """
         model.compile(
             optimizer='adam',
-            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
             metrics=['accuracy']
         )
 
@@ -156,11 +139,3 @@ class BasicModel:
         print('\nSaving...')
         model.save("notebooks/1_train_validation_test_procedure/model_1.h5")
         print('\n\033[92mSaving done !\033[0m')
-
-    
-    def evaluate(self):
-        model = tf.keras.models.load_model("notebooks/1_train_validation_test_procedure/model_1.h5")
-        print('\nEvaluating model...')
-        test_loss, test_acc = model.evaluate(self.test_ds)
-        print('\nTest loss is: %s' % (test_loss)) 
-        print('\nTest accurancy is: %s' % (test_acc))
