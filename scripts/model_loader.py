@@ -1,12 +1,14 @@
 import pathlib
 import os
+import math
 import tensorflow as tf
 import numpy as np
-import math
 import matplotlib.pyplot as plt
-from sklearn.metrics import classification_report
+import tensorflow as tf
 
+from sklearn.metrics import classification_report
 from data_vizualisation import plot_confusion_matrix, plot_roc_curve
+from dataset import Dataset
 
 
 class ModelLoader:
@@ -15,76 +17,19 @@ class ModelLoader:
         test_dir = pathlib.Path("data/test")
         pred_list = os.listdir("data/prediction/")
 
-        """
-        Function:
-            Load images from disk and build an image dataset that instanciate tf.data.Dataset class from Tensorflow API.
-            
-        Arguments:
-            test_dir (pathlib.Path):
-                Directory where the data is located. 
-                If labels is "inferred", it should contain subdirectories, each containing images for a class. 
-                Otherwise, the directory structure is ignored.
-            labels (str):
-                Either "inferred" (labels are generated from the directory structure), None (no labels), 
-                or a list/tuple of integer labels of the same size as the number of image files found in the directory. 
-                Labels should be sorted according to the alphanumeric order of the image file paths (obtained via os.walk(directory) in Python).
-            label_mode (str):
-                String describing the encoding of labels.
-                Options are:
-                    - 'int': means that the labels are encoded as integers (e.g. for sparse_categorical_crossentropy loss).
-                    - 'categorical' means that the labels are encoded as a categorical vector (e.g. for categorical_crossentropy loss).
-                    - 'binary' means that the labels (there can be only 2) are encoded as float32 scalars with values 0 or 1 (e.g. for binary_crossentropy).
-                    - None (no labels).
-                A chest ray is either pneumonia or normal. 'binary' mode will be appropriate.
-            color_mode (str):
-                One of "grayscale", "rgb", "rgba". Default: "rgb". 
-                Whether the images will be converted to have 1, 3, or 4 channels.
-                In the case chest ray, grayscale will be enough because haave no impact in pneumonia detection.
-            seed (int):
-                Optional random seed for shuffling and transformations.
-            batch_size (int):
-                Size of the batches of data. Default: 32. 
-                If None, the data will not be batched (the dataset will yield individual samples).
+        test_ds = Dataset(test_dir)
 
-            image_size (int):
-                Size to resize images to after they are read from disk, specified as (height, width). 
-                Defaults to (256, 256). 
-                Since the pipeline processes batches of images that must all have the same size, this must be provided.
-        """
-        test_ds = tf.keras.utils.image_dataset_from_directory(
-            test_dir,
-            labels="inferred",
-            label_mode="categorical",
-            color_mode="grayscale",
-            seed=123,
-            batch_size=32,
-            image_size=(128, 128),
-        )
+        AUTOTUNE = tf.data.AUTOTUNE
 
-        self.class_names = test_ds.class_names
+        test_ds.build(AUTOTUNE)
 
-        normalization_layer = tf.keras.layers.Rescaling(1./255)
-
-        """
-        Scale these values to a range of 0 to 1 before feeding them to the neural network model. 
-        To do so, divide the values by 255. 
-        It's important that the training set and the testing set be preprocessed in the same way.
-        """
-        self.test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
-
-
-        # Initialize lists for training and testing data
-        x_test, y_test = [], [] 
-        for x, y in test_ds.unbatch().as_numpy_iterator():
-            x_test.append(x)
-            y_test.append(y)
-        x_test, y_test = np.array(x_test), np.array(y_test)
-
-        self.pred_list = pred_list
         self.loaded_model = None
         self.probability_model = None
-        self.x_test = x_test
-        self.y_test = y_test
+        self.class_names = test_ds.get_class_names()
+        self.pred_list = pred_list
+        self.test_ds = test_ds.normalized_dataset
+        self.x_test = test_ds.x_dataset
+        self.y_test = test_ds.y_dataset
     
     def load(self, model_pathname):
         # Reconstruct the model identically to the previous train and save model.
@@ -162,7 +107,7 @@ class ModelLoader:
             img = tf.keras.utils.load_img(
                 f"data/prediction/{self.pred_list[i]}",
                 color_mode="grayscale",
-                target_size=(128, 128)
+                target_size=(512, 512)
             )
             img_array = tf.keras.utils.img_to_array(img)
             img_array = tf.expand_dims(img_array, 0) # Create a batch
