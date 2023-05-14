@@ -13,9 +13,11 @@ class Dataset:
         self.batch_size = batch_size
         self.image_size = image_size
         self.dataset = None
+        self.raw_dataset = None
         self.normalized_dataset = None
         self.class_names = None
         self.x_dataset = []
+        self.raw_x_dataset = []
         self.y_dataset = []
 
     def build(self, autotune, is_training=False):
@@ -37,7 +39,13 @@ class Dataset:
             self.dataset = dataset.cache().prefetch(buffer_size=autotune)
 
         self.class_names = dataset.class_names
+        self.raw_dataset = dataset
 
+        for x, y in dataset.unbatch().as_numpy_iterator():
+            self.raw_x_dataset.append(x)
+        
+        self.raw_x_dataset = np.array(self.raw_x_dataset)
+        
         normalization_layer = tf.keras.layers.Rescaling(1./255)
         self.normalized_dataset = self.dataset.map(lambda x, y: (normalization_layer(x), y))
         
