@@ -70,15 +70,19 @@ class Model:
         model.add(tf.keras.layers.Dense(512, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         model.add(tf.keras.layers.Dropout(0.7))
 
-        model.add(tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)))
+        model.add(tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         model.add(tf.keras.layers.Dropout(0.5))
 
-        model.add(tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)))
+        model.add(tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         model.add(tf.keras.layers.Dropout(0.3))
+
+        model.add(tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)))
+        model.add(tf.keras.layers.Dropout(0.1))
 
         model.add(tf.keras.layers.Dense(2, activation="softmax"))
 
         optimizer_func = tf.keras.optimizers.Adam(learning_rate=0.0005)
+        # optimizer_func = tf.keras.optimizers.experimental.SGD(learning_rate=0.0005)
 
         loss_func = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 
@@ -101,9 +105,9 @@ class Model:
 
         class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(self.y_train), y=np.argmax(self.y_train, axis=1))
         class_weights = dict(enumerate(class_weights))
-        class_weights[0] = class_weights[0] * 12.75
+        class_weights[0] = class_weights[0] * 12.25
 
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='categorical_accuracy', mode='max', patience=5, restore_best_weights=True)
+        stop_early = tf.keras.callbacks.EarlyStopping(monitor='categorical_accuracy', mode='max', patience=10, restore_best_weights=True)
 
 
         for train_index, val_index in kfold.split(self.x_train, self.y_train):       
