@@ -1,7 +1,6 @@
 import tensorflow as tf
 import tensorflowjs as tfjs
 import pathlib
-import matplotlib.pyplot as plt
 import numpy as np
 
 from sklearn.model_selection import KFold
@@ -48,11 +47,11 @@ class Model:
 
         model = tf.keras.Sequential()
 
-        model.add(tf.keras.layers.RandomZoom(0.2, input_shape=(256, 256, 1)))
+        model.add(tf.keras.layers.RandomZoom(0.2, input_shape=(180, 180, 1)))
         model.add(tf.keras.layers.RandomRotation(0.1))
         model.add(tf.keras.layers.RandomContrast(0.1))
 
-        model.add(tf.keras.layers.Conv2D(16, (3,3), activation='relu', padding='same', input_shape=(180, 180, 1)))
+        model.add(tf.keras.layers.Conv2D(16, (3,3), activation='relu', padding='same'))
         model.add(tf.keras.layers.MaxPool2D())
 
         model.add(tf.keras.layers.Conv2D(32, (3,3), activation='relu', padding='same'))
@@ -114,13 +113,21 @@ class Model:
             train_images, val_images = self.x_train[train_index], self.x_train[val_index]
             train_labels, val_labels = self.y_train[train_index], self.y_train[val_index]
 
-            model.fit(train_images, train_labels, class_weight=class_weights, batch_size=32, epochs=epochs, validation_data=(val_images, val_labels), callbacks=[stop_early])
+            model.fit(
+                train_images,
+                train_labels,
+                class_weight=class_weights,
+                batch_size=32,
+                epochs=epochs,
+                validation_data=(val_images, val_labels),
+                callbacks=[stop_early]
+            )
             
             fold += 1
         
         print("\n\033[92mTraining done !\033[0m")
 
         print("\nSaving...")
-        model.save("notebooks/5_regularization/model_5.keras")
-        tfjs.converters.save_keras_model(model, "notebooks/5_regularization")
+        model.save("notebooks/6_data_augmentation/model_6.keras")
+        tfjs.converters.save_keras_model(model, "notebooks/6_data_augmentation")
         print("\n\033[92mSaving done !\033[0m")
