@@ -25,7 +25,7 @@ def model_builder(hp):
     model.add(tf.keras.layers.MaxPooling2D(2,2))
 
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(256, activation='relu'))
+    model.add(tf.keras.layers.Dense(512, activation='relu'))
 
     model.add(tf.keras.layers.Dense(2, activation="softmax"))
 
@@ -90,10 +90,10 @@ class Model:
         print("\nTraining dataset's labels batch shape is:")
         print(train_y_batch_shape)
 
-        # train_ds.display_images_in_batch(1, "Training dataset")
-        # train_ds.display_batch_number("Training dataset")
-        # train_ds.display_distribution("Training dataset")
-        # train_ds.display_mean("Training dataset")
+        train_ds.display_images_in_batch(1, "Training dataset")
+        train_ds.display_batch_number("Training dataset")
+        train_ds.display_distribution("Training dataset")
+        train_ds.display_mean("Training dataset")
 
         self.class_names = class_names
         self.train_ds = train_ds.normalized_dataset
@@ -110,7 +110,7 @@ class Model:
 
         class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(self.y_train), y=np.argmax(self.y_train, axis=1))
         class_weights = dict(enumerate(class_weights))
-        class_weights[0] = class_weights[0] * 5.25
+        class_weights[0] = class_weights[0] * 5.50
 
 
         for train_index, val_index in kfold.split(self.x_train, self.y_train):       
@@ -124,27 +124,27 @@ class Model:
             
             fold += 1
 
-            # categorical_accuracy = history.history["categorical_accuracy"]
-            # val_categorical_accuracy = history.history["val_categorical_accuracy"]
+            categorical_accuracy = history.history["categorical_accuracy"]
+            val_categorical_accuracy = history.history["val_categorical_accuracy"]
 
-            # loss = history.history["loss"]
-            # val_loss = history.history["val_loss"]
+            loss = history.history["loss"]
+            val_loss = history.history["val_loss"]
 
-            # epochs_range = range(epochs)
+            epochs_range = range(epochs)
 
-            # plt.figure(figsize=(8, 8))
-            # plt.subplot(1, 2, 1)
-            # plt.plot(epochs_range, categorical_accuracy, label="Training Accuracy")
-            # plt.plot(epochs_range, val_categorical_accuracy, label="Validation Accuracy")
-            # plt.legend(loc="lower right")
-            # plt.title("Training and Validation Accuracy")
+            plt.figure(figsize=(8, 8))
+            plt.subplot(1, 2, 1)
+            plt.plot(epochs_range, categorical_accuracy, label="Training Accuracy")
+            plt.plot(epochs_range, val_categorical_accuracy, label="Validation Accuracy")
+            plt.legend(loc="lower right")
+            plt.title("Training and Validation Accuracy")
 
-            # plt.subplot(1, 2, 2)
-            # plt.plot(epochs_range, loss, label="Training Loss")
-            # plt.plot(epochs_range, val_loss, label="Validation Loss")
-            # plt.legend(loc="upper right")
-            # plt.title("Training and Validation Loss")
-            # plt.show()
+            plt.subplot(1, 2, 2)
+            plt.plot(epochs_range, loss, label="Training Loss")
+            plt.plot(epochs_range, val_loss, label="Validation Loss")
+            plt.legend(loc="upper right")
+            plt.title("Training and Validation Loss")
+            plt.show()
         
         print("\n\033[92mTraining done !\033[0m")
 

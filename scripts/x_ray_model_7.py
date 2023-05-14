@@ -11,33 +11,23 @@ from sklearn.utils import class_weight
 
 from scripts.x_ray_dataset_builder import Dataset
 
-
 def model_builder(hp):
-    model = tf.keras.Sequential(
-        [
-            tf.keras.ayers.RandomZoom(0.2, input_shape=(256, 256, 1)),
-            tf.keras.ayers.RandomRotation(0.1),
-            tf.keras.ayers.RandomContrast(0.1),
-        ]
-    )
+    # Load the EfficientNet model with pre-trained ImageNet weights
+    base_model = tf.keras.applicationsEfficientNetB0(include_top=False, weights='imagenet', input_shape=(180, 180, 1))
 
-    hp_l2_reg = hp.Float('l2_regularizer', min_value=1e-5, max_value=1e-2, sampling="log")
-    hp_dropout_rate = hp.Float('dropout_rate', min_value=0.1, max_value=0.5, step=0.1)
+    # Freeze the base model (so its weights won't change during training)
+    base_model.trainable = False
 
-    model.add(tf.keras.layers.Conv2D(32, (3,3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(hp_l2_reg), input_shape=(256, 256, 1)))
-    model.add(tf.keras.layers.MaxPooling2D(2, 2))
+    model = tf.keras.Sequential([
+        base_model,
 
-    model.add(tf.keras.layers.Conv2D(32, (3,3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(hp_l2_reg)))
-    model.add(tf.keras.layers.MaxPooling2D(2,2))
+        # Add new layers for your specific task
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(256, activation='relu'),
 
-    model.add(tf.keras.layers.Conv2D(128, (3,3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(hp_l2_reg)))
-    model.add(tf.keras.layers.MaxPooling2D(2,2))
-
-    model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(hp_l2_reg)))
-    model.add(tf.keras.layers.Dropout(hp_dropout_rate))  # Add dropout after the Dense layer
-
-    model.add(tf.keras.layers.Dense(2, activation="softmax"))
+        # Final classification layer
+        tf.keras.layers.Dense(2, activation="softmax")
+    ])
 
     hp_learning_rate = hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling="log")
 
@@ -55,7 +45,6 @@ def model_builder(hp):
     return model
 
 
-
 class HyperModel:
     def __init__(self, x_train, y_train, max_epochs):
         self.x_train = x_train
@@ -65,7 +54,7 @@ class HyperModel:
 
     def build(self):
         stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-        hyper_band = kt.Hyperband(model_builder, objective=kt.Objective('val_recall', direction='max'), max_epochs=50, factor=3, directory='hypertunning_logs', project_name='hyperband_algo_5')
+        hyper_band = kt.Hyperband(model_builder, objective=kt.Objective('val_recall', direction='max'), max_epochs=50, factor=3, directory='hypertunning_logs', project_name='hyperband_algo_7')
         class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(self.y_train), y=np.argmax(self.y_train, axis=1))
         class_weights = dict(enumerate(class_weights))
         class_weights[0] = class_weights[0] * 4
@@ -160,6 +149,6 @@ class Model:
         print("\n\033[92mTraining done !\033[0m")
 
         print("\nSaving...")
-        model.save("notebooks/5_regularization/model_5.keras")
-        tfjs.converters.save_keras_model(model, "notebooks/5_regularization")
+        model.save("notebooks/7_transfer_learning/model_7.keras")
+        tfjs.converters.save_keras_model(model, "notebooks/7_transfer_learning")
         print("\n\033[92mSaving done !\033[0m")
