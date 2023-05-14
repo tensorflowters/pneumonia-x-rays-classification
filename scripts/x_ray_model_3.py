@@ -36,8 +36,7 @@ def model_builder(hp):
         metrics=[
             tf.keras.metrics.CategoricalAccuracy(), 
             tf.keras.metrics.Precision(), 
-            tf.keras.metrics.Recall(),
-            tf.keras.metrics.AUC()
+            tf.keras.metrics.Recall()
         ]
     )
 

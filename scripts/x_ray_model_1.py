@@ -68,7 +68,6 @@ class Model:
                 tf.keras.metrics.CategoricalAccuracy(), 
                 tf.keras.metrics.Precision(), 
                 tf.keras.metrics.Recall(),
-                tf.keras.metrics.AUC()
             ],
         )
 

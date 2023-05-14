@@ -36,12 +36,11 @@ class ModelLoader:
     def evaluate(self):
         print('\nEvaluating loaded model...')
         print('\n')
-        test_loss, categorical_accuracy, test_precision, test_recall, test_auc = self.loaded_model.evaluate(self.test_ds, verbose=2)
+        test_loss, categorical_accuracy, test_precision, test_recall = self.loaded_model.evaluate(self.test_ds, verbose=2)
         print('\nTest loaded loss is: %s' % (test_loss))
         print('\nTest loaded categorical accurancy is: %s' % (categorical_accuracy))
         print('\nTest loaded precision is: %s' % (test_precision))
         print('\nTest loaded recall is: %s' % (test_recall))
-        print('\nTest loaded area under the curve is: %s' % (test_auc))
 
         y_pred = self.loaded_model.predict(self.x_test)
 

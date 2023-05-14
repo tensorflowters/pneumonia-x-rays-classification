@@ -38,8 +38,7 @@ def model_builder(hp):
     model.compile(optimizer=optimizer_func, loss=loss_func, metrics=[
             tf.keras.metrics.CategoricalAccuracy(), 
             tf.keras.metrics.Precision(), 
-            tf.keras.metrics.Recall(),
-            tf.keras.metrics.AUC()
+            tf.keras.metrics.Recall()
         ])
 
     return model
