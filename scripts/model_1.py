@@ -1,5 +1,6 @@
 import pathlib
 import tensorflow as tf
+import tensorflowjs as tfjs
 import matplotlib.pyplot as plt
 
 from dataset import Dataset
@@ -60,16 +61,16 @@ class Model:
             ]
         )
 
-        """
-        Before the model is ready for training, it needs a few more settings. These are added during the model's compile step:
-            - Loss function — This measures how accurate the model is during training. You want to minimize this function to "steer" the model in the right direction.
-            - Optimizer — This is how the model is updated based on the data it sees and its loss function.
-            - Metrics — Used to monitor the training and testing steps. The following example uses accuracy, the fraction of the images that are correctly classified.
-        """
         model.compile(
             optimizer="adam",
             loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
-            metrics=["accuracy"],
+            metrics=[
+                tf.keras.metrics.CategoricalAccuracy(), 
+                tf.keras.metrics.Precision(), 
+                tf.keras.metrics.Recall(),
+                tf.keras.metrics.F1Score(),
+                tf.keras.metrics.AUC()
+            ],
         )
 
         model.summary()
@@ -79,7 +80,6 @@ class Model:
     def train(self, epochs):
         model = self.build()
 
-        # Train the model
         print("\nStarting training...")
         history = model.fit(self.train_ds, validation_data=self.val_ds, epochs=epochs)
         print("\n\033[92mTraining done !\033[0m")
@@ -106,7 +106,7 @@ class Model:
         plt.title("Training and Validation Loss")
         plt.show()
 
-        # Save the model so he could be infer an unlimited amount of time without training again
         print("\nSaving...")
-        model.save("notebooks/1_train_validation_test_procedure/model_1.h5")
+        model.save("notebooks/1_train_validation_test_procedure/model_1.keras")
+        tfjs.converters.save_keras_model(model, "notebooks/1_train_validation_test_procedure")
         print("\n\033[92mSaving done !\033[0m")

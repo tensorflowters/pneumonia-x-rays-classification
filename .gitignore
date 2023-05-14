@@ -1,3 +1,6 @@
 .vscode
 **.local
 **/**.h5
+**/**.keras
+**/**.tf-data
+hypertunning_logs

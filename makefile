@@ -1,10 +1,12 @@
-addPyLib:
-	@python3.9 -m pip install ${LIB_NAME}
+LIB ?= 
 
-MODEL_ID ?= 1
+addPyLib:
+	@python3.9 -m pip install ${LIB}
+
+ID ?= 1
 
 train:
-	@python3.9 scripts/train_$(MODEL_ID).py
+	@python3.9 scripts/train_$(ID).py
 
 run:
-	@python3.9 scripts/run_$(MODEL_ID).py
+	@python3.9 scripts/run_$(ID).py

@@ -19,47 +19,10 @@ class Dataset:
         self.y_dataset = []
 
     def build(self, autotune, is_training=False):
-        """
-        Function:
-            Load images from disk and build an image dataset that instanciate tf.data.Dataset class from Tensorflow API.
-            
-        Arguments:
-            test_dir (pathlib.Path):
-                Directory where the data is located. 
-                If labels is "inferred", it should contain subdirectories, each containing images for a class. 
-                Otherwise, the directory structure is ignored.
-            labels (str):
-                Either "inferred" (labels are generated from the directory structure), None (no labels), 
-                or a list/tuple of integer labels of the same size as the number of image files found in the directory. 
-                Labels should be sorted according to the alphanumeric order of the image file paths (obtained via os.walk(directory) in Python).
-            label_mode (str):
-                String describing the encoding of labels.
-                Options are:
-                    - 'int': means that the labels are encoded as integers (e.g. for sparse_categorical_crossentropy loss).
-                    - 'categorical' means that the labels are encoded as a categorical vector (e.g. for categorical_crossentropy loss).
-                    - 'binary' means that the labels (there can be only 2) are encoded as float32 scalars with values 0 or 1 (e.g. for binary_crossentropy).
-                    - None (no labels).
-                A chest ray is either pneumonia or normal. 'binary' mode will be appropriate.
-            color_mode (str):
-                One of "grayscale", "rgb", "rgba". Default: "rgb". 
-                Whether the images will be converted to have 1, 3, or 4 channels.
-                In the case chest ray, grayscale will be enough because haave no impact in pneumonia detection.
-            seed (int):
-                Optional random seed for shuffling and transformations.
-            batch_size (int):
-                Size of the batches of data. Default: 32. 
-                If None, the data will not be batched (the dataset will yield individual samples).
-
-            image_size (int):
-                Size to resize images to after they are read from disk, specified as (height, width). 
-                Defaults to (256, 256). 
-                Since the pipeline processes batches of images that must all have the same size, this must be provided.
-        """
         dataset = tf.keras.utils.image_dataset_from_directory(
             self.dir_path,
             labels="inferred",
-            label_mode="categorical", # the labels are a float32 tensor of shape (batch_size, num_classes), representing a one-hot encoding of the class index.
-            validation_split=self.validation_split,
+            label_mode="categorical",
             subset=self.subset,
             seed=123,
             color_mode=self.color_mode,
@@ -67,7 +30,6 @@ class Dataset:
             image_size=self.image_size,
         )
 
-        # Argument autotune need to be tf.data.AUTOTUNE but just defined once during script execution
         if(is_training):
             self.dataset = dataset.cache().shuffle(1000).prefetch(buffer_size=autotune)
         else:
@@ -111,25 +73,19 @@ class Dataset:
         plt.show()
 
     def display_batch_number(self, dataset_name):
-        # Count the total number of images
         total_images = len(self.x_dataset)
-        batch_size = self.batch_size  # Or whatever batch size you're using
+        batch_size = self.batch_size
 
-        # Calculate the number of batches
         total_batches = total_images // batch_size
 
-        # There might be one more batch if the total number of images isn't divisible by the batch size
         if total_images % batch_size != 0:
             total_batches += 1
 
         batch_indices = list(range(total_batches))
         batch_sizes = [batch_size]*total_batches
 
-        # If the total number of images isn't divisible by the batch size, 
-        # the last batch will contain the remainder
         if total_images % batch_size != 0:
             batch_sizes[-1] = total_images % batch_size
-
 
         plt.figure(figsize=(20, 10))
         plt.style.use('seaborn')
@@ -140,7 +96,6 @@ class Dataset:
         plt.show()
 
     def display_distribution(self, dataset_name):
-        # Display x-ray distribution in dataset
         labels_index = np.argmax(self.y_dataset, axis=1)
         labels = []
 
@@ -150,6 +105,5 @@ class Dataset:
         plot_distribution(labels, dataset_name)
 
     def display_mean(self, dataset_name):
-        # Display x-ray mean occurence in dataset
         labels = np.argmax(self.y_dataset, axis=1)
         plot_mean(labels, self.class_names, dataset_name)
