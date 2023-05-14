@@ -31,10 +31,10 @@ class Model:
         print("\nTraining dataset's labels batch shape is:")
         print(train_y_batch_shape)
 
-        # train_ds.display_images_in_batch(1, "Training dataset")
-        # train_ds.display_batch_number("Training dataset")
-        # train_ds.display_distribution("Training dataset")
-        # train_ds.display_mean("Training dataset")
+        train_ds.display_images_in_batch(1, "Training dataset")
+        train_ds.display_batch_number("Training dataset")
+        train_ds.display_distribution("Training dataset")
+        train_ds.display_mean("Training dataset")
 
         self.class_names = class_names
         self.model = None
@@ -81,8 +81,7 @@ class Model:
 
         model.add(tf.keras.layers.Dense(2, activation="softmax"))
 
-        optimizer_func = tf.keras.optimizers.Adam(learning_rate=0.0005)
-        # optimizer_func = tf.keras.optimizers.experimental.SGD(learning_rate=0.0005)
+        optimizer_func = tf.keras.optimizers.experimental.Adagrad(learning_rate=0.005)
 
         loss_func = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 
@@ -95,7 +94,6 @@ class Model:
         self.model = model
 
         return model
-
 
 
     def train(self, epochs, k=5):

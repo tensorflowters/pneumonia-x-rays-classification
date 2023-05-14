@@ -54,24 +54,44 @@ class Model:
             base_model,
             # Add new layers for your specific task
             tf.keras.layers.GlobalAveragePooling2D(),
-            tf.keras.layers.Dense(256, activation='relu'),
 
+            tf.keras.layers.RandomZoom(0.2, input_shape=(180, 180, 1)),
+            tf.keras.layers.RandomRotation(0.1),
+            tf.keras.layers.RandomContrast(0.1),
+
+            tf.keras.layers.Conv2D(16, (3,3), activation='relu', padding='same'),
+            tf.keras.layers.MaxPool2D(),
+
+            tf.keras.layers.Conv2D(32, (3,3), activation='relu', padding='same'),
+            tf.keras.layers.MaxPool2D(),
+
+            tf.keras.layers.Conv2D(64, (3,3), activation='relu', padding='same'),
+            tf.keras.layers.MaxPool2D(),
+
+            tf.keras.layers.Conv2D(128, (3,3), activation='relu', padding='same'),
+            tf.keras.layers.MaxPool2D(),
+
+            tf.keras.layers.Conv2D(256, (3,3), activation='relu', padding='same'),
+            tf.keras.layers.MaxPool2D(),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(512, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
             tf.keras.layers.Dropout(0.7),
 
-            tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
+            tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
             tf.keras.layers.Dropout(0.5),
 
-            tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
+            tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
             tf.keras.layers.Dropout(0.3),
-            # Final classification layer
-            tf.keras.layers.Dense(2, activation="softmax")
-        ])
 
+            tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
+            tf.keras.layers.Dropout(0.1),
 
+            tf.keras.layers.Dense(2, activation="softmax"),
+            ]
+        )
 
-        optimizer_func = tf.keras.optimizers.Adam(learning_rate=0.0005)
+        # optimizer_func = tf.keras.optimizers.Adam(learning_rate=0.0005)
+        optimizer_func = tf.keras.optimizers.experimental.Adagrad(learning_rate=0.005)
 
         loss_func = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 
