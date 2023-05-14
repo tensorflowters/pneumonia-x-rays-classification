@@ -10,3 +10,6 @@ train:
 
 run:
 	@python3.9 scripts/x_ray_run_$(ID).py
+
+httpServer:
+	@python3.9 -m http.server

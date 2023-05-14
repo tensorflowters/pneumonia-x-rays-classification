@@ -1,4 +1,4 @@
-from scripts.x_ray_model_loader import ModelLoader
+from x_ray_model_loader import ModelLoader
 
 
 print("\033[91m=====================================================================\033[0m")

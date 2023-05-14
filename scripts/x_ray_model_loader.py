@@ -12,7 +12,7 @@ from x_ray_dataset_builder import Dataset
 
 
 class ModelLoader:
-    def __init__(self, btch_size=64, img_size=(512, 512)):
+    def __init__(self, btch_size=32, img_size=(180, 180)):
         test_dir = pathlib.Path("data/test")
         pred_list = os.listdir("data/prediction/")
 
@@ -52,7 +52,7 @@ class ModelLoader:
         print("\nClassification Report:\n")
         print(classification_report(true_labels, pred_labels, target_names=self.class_names, zero_division=0))
 
-    def predict(self, color="grayscale", img_size=(512, 512)):
+    def predict(self, color="grayscale", img_size=(180, 180)):
         num_cols = 4
         num_rows = math.ceil(len(self.pred_list) / num_cols)
 

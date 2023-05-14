@@ -5,7 +5,7 @@ import tensorflow as tf
 from x_ray_data_viz import plot_distribution, plot_mean
 
 class Dataset:
-    def __init__(self, dir_path, validation_split=None, subset=None, color_mode="grayscale", batch_size=64, image_size=(512, 512)):
+    def __init__(self, dir_path, validation_split=None, subset=None, color_mode="grayscale", batch_size=32, image_size=(180, 180)):
         self.dir_path = dir_path
         self.validation_split = validation_split
         self.subset = subset
@@ -24,6 +24,7 @@ class Dataset:
             labels="inferred",
             label_mode="categorical",
             subset=self.subset,
+            validation_split=self.validation_split,
             seed=123,
             color_mode=self.color_mode,
             batch_size=self.batch_size,

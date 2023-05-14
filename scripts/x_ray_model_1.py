@@ -3,15 +3,15 @@ import tensorflow as tf
 import tensorflowjs as tfjs
 import matplotlib.pyplot as plt
 
-from scripts.x_ray_dataset_builder import Dataset
+from x_ray_dataset_builder import Dataset
 
 
 class Model:
     def __init__(self):
         train_dir = pathlib.Path("data/train")
 
-        train_ds = Dataset(train_dir, 0.2, "training")
-        val_ds = Dataset(train_dir, 0.2, "validation")
+        train_ds = Dataset(train_dir, validation_split=0.2, subset="training")
+        val_ds = Dataset(train_dir, validation_split=0.2, subset="validation")
 
         AUTOTUNE = tf.data.AUTOTUNE
 
@@ -55,7 +55,7 @@ class Model:
     def build(self):
         model = tf.keras.Sequential(
             [
-                tf.keras.layers.Flatten(input_shape=(512, 512, 1)),
+                tf.keras.layers.Flatten(input_shape=(180, 180, 1)),
                 tf.keras.layers.Dense(128, activation="relu"),
                 tf.keras.layers.Dense(len(self.class_names), activation="softmax"),
             ]
@@ -83,8 +83,8 @@ class Model:
         history = model.fit(self.train_ds, validation_data=self.val_ds, epochs=epochs)
         print("\n\033[92mTraining done !\033[0m")
 
-        acc = history.history["accuracy"]
-        val_acc = history.history["val_accuracy"]
+        acc = history.history["categorical_accuracy"]
+        val_acc = history.history["val_categorical_accuracy"]
 
         loss = history.history["loss"]
         val_loss = history.history["val_loss"]
@@ -93,10 +93,10 @@ class Model:
 
         plt.figure(figsize=(8, 8))
         plt.subplot(1, 2, 1)
-        plt.plot(epochs_range, acc, label="Training Accuracy")
-        plt.plot(epochs_range, val_acc, label="Validation Accuracy")
+        plt.plot(epochs_range, acc, label="Training Categorical Accuracy")
+        plt.plot(epochs_range, val_acc, label="Validation Categorical Accuracy")
         plt.legend(loc="lower right")
-        plt.title("Training and Validation Accuracy")
+        plt.title("Training and Validation Categorical Accuracy")
 
         plt.subplot(1, 2, 2)
         plt.plot(epochs_range, loss, label="Training Loss")

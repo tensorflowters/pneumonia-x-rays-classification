@@ -17,6 +17,7 @@ def model_builder(hp):
     hp_l2_reg_1 = hp.Float('l2_regularizer_1', min_value=1e-5, max_value=1e-2, sampling="log")
     hp_l2_reg_2 = hp.Float('l2_regularizer_2', min_value=1e-5, max_value=1e-2, sampling="log")
     hp_l2_reg_3 = hp.Float('l2_regularizer_3', min_value=1e-5, max_value=1e-2, sampling="log")
+
     hp_dropout_rate_0 = hp.Float('dropout_rate_1', min_value=0.1, max_value=0.10, step=0.1)
     hp_dropout_rate_1 = hp.Float('dropout_rate_1', min_value=0.1, max_value=0.10, step=0.1)
     hp_dropout_rate_2 = hp.Float('dropout_rate_2', min_value=0.1, max_value=0.10, step=0.1)
@@ -69,7 +70,6 @@ def model_builder(hp):
     return model
 
 
-
 class HyperModel:
     def __init__(self, x_train, y_train, max_epochs):
         self.x_train = x_train
@@ -78,10 +78,17 @@ class HyperModel:
         self.hypermodel = None
 
     def build(self):
-        hyper_band = kt.Hyperband(model_builder, objective=kt.Objective('val_categorical_accuracy', direction='max'), max_epochs=100, factor=3, directory='hypertunning_logs', project_name='hyperband_algo_5')
+        hyper_band = kt.Hyperband(
+            model_builder, 
+            objective=kt.Objective('val_categorical_accuracy', direction='max'), 
+            max_epochs=100, 
+            factor=3, 
+            directory='hypertunning_logs', 
+            project_name='hyperband_algo_5'
+        )
         class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(self.y_train), y=np.argmax(self.y_train, axis=1))
         class_weights = dict(enumerate(class_weights))
-        stop_early = tf.keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True)
+        stop_early = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
         hyper_band.search(self.x_train, self.y_train, class_weight=class_weights, validation_split=0.20, callbacks=[stop_early], epochs=self.max_epochs, batch_size=32)
         print("\n")
         hyper_band.results_summary(1)
@@ -93,7 +100,7 @@ class HyperModel:
 
 
 class Model:
-    def __init__(self, image_size=(512, 512)):
+    def __init__(self, image_size=(180, 180)):
         train_dir = pathlib.Path("data/train")
 
         train_ds = Dataset(train_dir, batch_size=32, image_size=image_size)
@@ -134,8 +141,9 @@ class Model:
 
         class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(self.y_train), y=np.argmax(self.y_train, axis=1))
         class_weights = dict(enumerate(class_weights))
+        class_weights[0] = class_weights[0] * 12
 
-        stop_early = tf.keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True)
+        stop_early = tf.keras.callbacks.EarlyStopping(monitor='categorical_accuracy', mode='max', patience=3, restore_best_weights=True)
 
 
         for train_index, val_index in kfold.split(self.x_train, self.y_train):       

@@ -1,4 +1,4 @@
-from scripts.x_ray_model_1 import Model
+from x_ray_model_1 import Model
 
 
 print("\033[91m=====================================================================\033[0m")
