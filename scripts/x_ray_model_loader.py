@@ -12,11 +12,11 @@ from x_ray_dataset_builder import Dataset
 
 
 class ModelLoader:
-    def __init__(self, btch_size=32, img_size=(180, 180)):
+    def __init__(self, btch_size=32, img_size=(180, 180), color="grayscale"):
         test_dir = pathlib.Path("data/test")
         pred_list = os.listdir("data/prediction/")
 
-        test_ds = Dataset(test_dir, image_size=img_size, batch_size=btch_size)
+        test_ds = Dataset(test_dir, image_size=img_size, batch_size=btch_size, color_mode=color)
 
         AUTOTUNE = tf.data.AUTOTUNE
         test_ds.build(AUTOTUNE)
