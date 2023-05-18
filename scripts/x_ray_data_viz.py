@@ -54,7 +54,7 @@ def plot_confusion_matrix(labels_true, labels_pred, class_names):
     plt.ylabel("Actual results")
     plt.show()
 
-def plot_roc_curve(y_true, y_pred_probs, class_names):
+def plot_roc_curve(y_true, y_pred_probs, class_names, binary=False):
     y_true_bin = label_binarize(y_true, classes=class_names)
     n_classes = len(class_names)
 
@@ -63,17 +63,27 @@ def plot_roc_curve(y_true, y_pred_probs, class_names):
     roc_auc = dict()
 
     for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])
-
-    fpr["micro"], tpr["micro"], _ = roc_curve(y_true_bin.ravel(), y_pred_probs.ravel())
-    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+        if(binary):
+            fpr, tpr, _ = roc_curve(y_true_bin, y_pred_probs)
+            roc_auc = auc(fpr, tpr)
+        else:
+            fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+    if(binary):
+        fpr, tpr, thresholds = roc_curve(y_true, y_pred_probs)
+        roc_auc = auc(fpr, tpr)
+    else:
+        fpr["micro"], tpr["micro"], _ = roc_curve(y_true_bin.ravel(), y_pred_probs.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
     plt.figure(figsize=(20, 10))
     sns.set_style('whitegrid')
 
     for i in range(n_classes):
-        plt.plot(fpr[i], tpr[i], label=f"Xray {class_names[i]} (AUC = {roc_auc[i]:.4f})")
+        if(binary):
+            plt.plot(fpr, tpr, label=f"Xray (AUC = {roc_auc:.4f})")
+        else:
+            plt.plot(fpr[i], tpr[i], label=f"Xray {class_names[i]} (AUC = {roc_auc[i]:.4f})")
 
     plt.plot([0, 1], [0, 1], "k--")
     plt.xlim([0.0, 0.2])

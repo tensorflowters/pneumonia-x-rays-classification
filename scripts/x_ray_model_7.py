@@ -3,130 +3,195 @@ import tensorflowjs as tfjs
 import pathlib
 import numpy as np
 
-from sklearn.model_selection import KFold
 from sklearn.utils import class_weight
 
-from x_ray_dataset_builder import Dataset    
+from x_ray_dataset_builder import Dataset
+from custom_layer import ConcatenationLayer
 
 
 class Model:
-    def __init__(self, image_size=(180, 180)):
+    def __init__(self, image_size=(180, 180), batch_size=16):
         train_dir = pathlib.Path("data/train")
 
-        train_ds = Dataset(train_dir, batch_size=32, image_size=image_size, color_mode='rgb', validation_split=0.2, subset='training')
-        test_ds = Dataset(train_dir, batch_size=32, image_size=image_size, color_mode='rgb', validation_split=0.2, subset='validation')
+        train_ds = Dataset(
+            train_dir,
+            batch_size=batch_size,
+            image_size=image_size,
+            color_mode="rgb",
+            validation_split=0.2,
+            subset="training",
+            label_mode="binary"
+        )
+
+        test_ds = Dataset(
+            train_dir,
+            batch_size=batch_size,
+            image_size=image_size,
+            color_mode="rgb",
+            validation_split=0.2,
+            subset="validation",
+            label_mode="binary"
+        )
 
         AUTOTUNE = tf.data.AUTOTUNE
 
-        train_ds.build(AUTOTUNE, False)
+        train_ds.build(AUTOTUNE, True)
         test_ds.build(AUTOTUNE, False)
 
         self.class_names = train_ds.class_names
         self.model = None
-        self.base_model = None
+        self.batch_size = batch_size
         self.train_ds = train_ds.dataset
         self.test_ds = test_ds.dataset
         self.x_train = train_ds.x_dataset
-        self.raw_x_dataset = train_ds.raw_x_dataset
         self.y_train = train_ds.y_dataset
+        self.x_test = test_ds.x_dataset
+        self.y_test = test_ds.y_dataset
 
-    
-    def init_build(self):
-        data_augmentation = tf.keras.Sequential(
-            [tf.keras.layers.RandomZoom(0.2, input_shape=(180, 180, 3)), tf.keras.layers.RandomRotation(0.1),]
+    def build(self):
+        input_shape = (180, 180, 3)
+
+        resnet_base = tf.keras.applications.resnet50.ResNet50(
+            weights="imagenet", input_shape=input_shape, include_top=False
         )
-        # Load the EfficientNet model with pre-trained ImageNet weights
-        base_model = tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=(180, 180, 3))
 
-        # Freeze the base model (so its weights won't change during training)
-        base_model.trainable = False
+        vgg_base = tf.keras.applications.vgg16.VGG16(
+            weights="imagenet", input_shape=input_shape, include_top=False
+        )
 
-        self.base_model = base_model
-        inputs = tf.keras.Input(shape=(180, 180, 3))
-        x = data_augmentation(inputs)  # Apply random data augmentation
-        # Pre-trained Xception weights requires that input be scaled
-        # from (0, 255) to a range of (-1., +1.), the rescaling layer
-        # outputs: `(inputs * scale) + offset`
-        scale_layer = tf.keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
-        x = scale_layer(x)
+        inception_base = tf.keras.applications.inception_v3.InceptionV3(
+            weights="imagenet", input_shape=input_shape, include_top=False
+        )
 
-        # The base model contains batchnorm layers. We want to keep them in inference mode
-        # when we unfreeze the base model for fine-tuning, so we make sure that the
-        # base_model is running in inference mode here.
-        x = base_model(x, training=False)
-        x = tf.keras.layers.GlobalAveragePooling2D()(x)
-        x = tf.keras.layers.Dropout(0.2)(x)  # Regularize with dropout
-        outputs = tf.keras.layers.Dense(2, activation="softmax")(x)
-        model = tf.keras.Model(inputs, outputs)
+        resnet_base.trainable = False
+        vgg_base.trainable = False
+        inception_base.trainable = False
+
+        img_input = tf.keras.layers.Input(shape=input_shape)
+
+        # Data Augmentation layers
+        data_augmentation = tf.keras.Sequential(
+            [
+                tf.keras.layers.RandomFlip("horizontal", input_shape=input_shape),
+                tf.keras.layers.RandomZoom(0.2),
+                tf.keras.layers.RandomRotation(0.1),
+            ]
+        )
+        # Apply data augmentation to the inputs
+        augmented_inputs = data_augmentation(img_input)
+
+        # Pass the shared augmented inputs through your models
+        resnet_output = resnet_base(augmented_inputs)
+        vgg_output = vgg_base(augmented_inputs)
+        inception_output = inception_base(augmented_inputs)
+
+        resnet_output = tf.keras.layers.GlobalAveragePooling2D()(resnet_output)
+        vgg_output = tf.keras.layers.GlobalAveragePooling2D()(vgg_output)
+        inception_output = tf.keras.layers.GlobalAveragePooling2D()(inception_output)
+
+        concat_layer = ConcatenationLayer()(
+            [
+                resnet_output, 
+                vgg_output, 
+                inception_output
+            ]
+        )
+
+        model = tf.keras.layers.BatchNormalization()(concat_layer)
+        outputs = tf.keras.layers.Dense(256, activation="relu")(model)
+        outputs = tf.keras.layers.Dropout(0.5)(outputs)
+
+        outputs = tf.keras.layers.BatchNormalization()(outputs)
+        outputs = tf.keras.layers.Dense(128, activation="relu")(outputs)
+        outputs = tf.keras.layers.Dropout(0.5)(outputs)
+
+        outputs = tf.keras.layers.Dense(1, activation="sigmoid")(outputs)
+
+        # Combine everything into a final Model
+        model = tf.keras.Model(inputs=img_input, outputs=outputs)
+
+        self.model = model
 
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(),
-            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
+            optimizer=tf.keras.optimizers.Adam(0.0001),
+            loss='binary_crossentropy',
             metrics=[
-                tf.keras.metrics.CategoricalAccuracy(),
-                tf.keras.metrics.Precision(), 
+                tf.keras.metrics.BinaryAccuracy(),
+                tf.keras.metrics.Precision(),
                 tf.keras.metrics.Recall(),
             ],
         )
 
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='categorical_accuracy', mode='max', patience=5, restore_best_weights=True)
-
-        epochs = 100
-
-        model.fit(self.train_ds, epochs=epochs, validation_data=self.test_ds, callbacks=[stop_early])
-        
-        self.model = model
+        model.fit(self.train_ds, epochs=10, validation_data=self.test_ds)
 
         return model
 
+    def train(self, epochs):
+        # class_weights = class_weight.compute_class_weight(
+        #     "balanced",
+        #     classes=np.unique(self.y_train),
+        #     y=np.argmax(self.y_train, axis=1),
+        # )
 
-    def train(self, epochs, k=5):
-        k = k
-        kfold = KFold(n_splits=k, shuffle=True, random_state=1)
-        fold = 1
+        # class_weights = dict(enumerate(class_weights))
+        # class_weights[0] = class_weights[0] * 12.5
 
-        class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(self.y_train), y=np.argmax(self.y_train, axis=1))
-        class_weights = dict(enumerate(class_weights))
-        class_weights[0] = class_weights[0] * 2
+        stop_early = tf.keras.callbacks.EarlyStopping(
+            monitor="val_binary_accuracy",
+            mode="max",
+            patience=4,
+            restore_best_weights=True,
+            verbose=1,
+        )
 
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='categorical_accuracy', mode='max', patience=5, restore_best_weights=True)
+        reduce_learning_rate = tf.keras.callbacks.ReduceLROnPlateau(
+            monitor="val_binary_accuracy",
+            factor=0.01,
+            patience=4,
+            verbose=1,
+            mode="max",
+            min_delta=0.01,
+        )
 
-        model = self.init_build()
+        model_save = tf.keras.callbacks.ModelCheckpoint(
+            "notebooks/7_transfer_learning/model_7_checkpoint.keras",
+            save_best_only=True,
+            save_weights_only=False,
+            monitor="val_loss",
+            mode="min",
+            verbose=1,
+        )
 
-        self.base_model.trainable = True
+        model = self.build()
+
+        model.trainable = True
 
         model.summary()
 
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(1e-5),  # Low learning rate
-            loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+            loss='binary_crossentropy',
             metrics=[
-                tf.keras.metrics.CategoricalAccuracy(),
-                tf.keras.metrics.Precision(), 
+                tf.keras.metrics.BinaryAccuracy(),
+                tf.keras.metrics.Precision(),
                 tf.keras.metrics.Recall(),
             ],
         )
 
-        epochs = 100
+        print("hello")
+        print(len(self.x_train))
 
-        for train_index, val_index in kfold.split(self.x_train, self.y_train):       
+        model.fit(
+            self.x_train,
+            self.y_train,
+            # class_weight=class_weights,
+            steps_per_epoch=int(len(self.x_train)/self.batch_size),
+            batch_size=self.batch_size,
+            epochs=epochs,
+            validation_data=(self.x_test, np.argmax(self.y_test, axis=1)),
+            callbacks=[stop_early, reduce_learning_rate, model_save],
+        )
 
-            print(f"\nProcessing fold {fold}")
-            train_images, val_images = self.x_train[train_index], self.x_train[val_index]
-            train_labels, val_labels = self.y_train[train_index], self.y_train[val_index]
-
-            model.fit(
-                train_images,
-                train_labels,
-                class_weight=class_weights,
-                batch_size=32,
-                epochs=epochs,
-                validation_data=(val_images, val_labels),
-                callbacks=[stop_early]
-            )
-            
-            fold += 1
-        
         print("\n\033[92mTraining done !\033[0m")
 
         print("\nSaving...")
