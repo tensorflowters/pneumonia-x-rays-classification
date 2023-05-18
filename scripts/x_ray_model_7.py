@@ -1,36 +1,36 @@
+import numpy as np
+import pathlib
 import tensorflow as tf
 import tensorflowjs as tfjs
-import pathlib
-import numpy as np
 
 from sklearn.utils import class_weight
 
-from x_ray_dataset_builder import Dataset
 from custom_layer import ConcatenationLayer
+from x_ray_dataset_builder import Dataset
 
 
 class Model:
-    def __init__(self, image_size=(180, 180), batch_size=16):
+    def __init__(self, batch_size=16, image_size=(180, 180)):
         train_dir = pathlib.Path("data/train")
 
         train_ds = Dataset(
             train_dir,
             batch_size=batch_size,
-            image_size=image_size,
             color_mode="rgb",
-            validation_split=0.2,
+            image_size=image_size,
+            label_mode="binary",
             subset="training",
-            label_mode="binary"
+            validation_split=0.2,
         )
 
         test_ds = Dataset(
             train_dir,
             batch_size=batch_size,
-            image_size=image_size,
             color_mode="rgb",
-            validation_split=0.2,
+            image_size=image_size,
+            label_mode="binary",
             subset="validation",
-            label_mode="binary"
+            validation_split=0.2,
         )
 
         AUTOTUNE = tf.data.AUTOTUNE
@@ -38,15 +38,15 @@ class Model:
         train_ds.build(AUTOTUNE, True)
         test_ds.build(AUTOTUNE, False)
 
+        self.batch_size = batch_size
         self.class_names = train_ds.class_names
         self.model = None
-        self.batch_size = batch_size
-        self.train_ds = train_ds.dataset
         self.test_ds = test_ds.dataset
-        self.x_train = train_ds.x_dataset
-        self.y_train = train_ds.y_dataset
+        self.train_ds = train_ds.dataset
         self.x_test = test_ds.x_dataset
+        self.x_train = train_ds.x_dataset
         self.y_test = test_ds.y_dataset
+        self.y_train = train_ds.y_dataset
 
     def build(self):
         input_shape = (180, 180, 3)
@@ -69,18 +69,16 @@ class Model:
 
         img_input = tf.keras.layers.Input(shape=input_shape)
 
-        # Data Augmentation layers
         data_augmentation = tf.keras.Sequential(
             [
                 tf.keras.layers.RandomFlip("horizontal", input_shape=input_shape),
-                tf.keras.layers.RandomZoom(0.2),
                 tf.keras.layers.RandomRotation(0.1),
+                tf.keras.layers.RandomZoom(0.2),
             ]
         )
-        # Apply data augmentation to the inputs
+
         augmented_inputs = data_augmentation(img_input)
 
-        # Pass the shared augmented inputs through your models
         resnet_output = resnet_base(augmented_inputs)
         vgg_output = vgg_base(augmented_inputs)
         inception_output = inception_base(augmented_inputs)
@@ -107,7 +105,6 @@ class Model:
 
         outputs = tf.keras.layers.Dense(1, activation="sigmoid")(outputs)
 
-        # Combine everything into a final Model
         model = tf.keras.Model(inputs=img_input, outputs=outputs)
 
         self.model = model
@@ -127,38 +124,37 @@ class Model:
         return model
 
     def train(self, epochs):
-        # class_weights = class_weight.compute_class_weight(
-        #     "balanced",
-        #     classes=np.unique(self.y_train),
-        #     y=np.argmax(self.y_train, axis=1),
-        # )
-
-        # class_weights = dict(enumerate(class_weights))
+        class_weights = class_weight.compute_class_weight(
+            "balanced",
+            classes=np.unique(self.y_train),
+            y=np.argmax(self.y_train, axis=1),
+        )
+        class_weights = dict(enumerate(class_weights))
         # class_weights[0] = class_weights[0] * 12.5
 
         stop_early = tf.keras.callbacks.EarlyStopping(
-            monitor="val_binary_accuracy",
             mode="max",
-            patience=4,
+            monitor="val_binary_accuracy",
+            patience=3,
             restore_best_weights=True,
             verbose=1,
         )
 
         reduce_learning_rate = tf.keras.callbacks.ReduceLROnPlateau(
-            monitor="val_binary_accuracy",
             factor=0.01,
-            patience=4,
-            verbose=1,
-            mode="max",
             min_delta=0.01,
+            mode="min",
+            monitor="val_loss",
+            patience=5,
+            verbose=1,
         )
 
         model_save = tf.keras.callbacks.ModelCheckpoint(
             "notebooks/7_transfer_learning/model_7_checkpoint.keras",
+            mode="min",
+            monitor="val_loss",
             save_best_only=True,
             save_weights_only=False,
-            monitor="val_loss",
-            mode="min",
             verbose=1,
         )
 
@@ -169,7 +165,7 @@ class Model:
         model.summary()
 
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
             loss='binary_crossentropy',
             metrics=[
                 tf.keras.metrics.BinaryAccuracy(),
@@ -178,23 +174,21 @@ class Model:
             ],
         )
 
-        print("hello")
-        print(len(self.x_train))
-
         model.fit(
-            self.x_train,
-            self.y_train,
-            # class_weight=class_weights,
-            steps_per_epoch=int(len(self.x_train)/self.batch_size),
+            self.train_ds,
             batch_size=self.batch_size,
-            epochs=epochs,
-            validation_data=(self.x_test, np.argmax(self.y_test, axis=1)),
             callbacks=[stop_early, reduce_learning_rate, model_save],
+            class_weight=class_weights,
+            epochs=epochs,
+            steps_per_epoch=int(len(self.x_train)/self.batch_size),
+            validation_data=(self.test_ds),
         )
 
         print("\n\033[92mTraining done !\033[0m")
 
         print("\nSaving...")
+
         model.save("notebooks/7_transfer_learning/model_7.keras")
         tfjs.converters.save_keras_model(model, "notebooks/7_transfer_learning")
+
         print("\n\033[92mSaving done !\033[0m")
