@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import pathlib
 import tensorflow as tf
 import tensorflowjs as tfjs
@@ -7,6 +8,7 @@ from sklearn.utils import class_weight
 
 from custom_layer import ConcatenationLayer
 from x_ray_dataset_builder import Dataset
+from x_ray_data_viz import plot_history
 
 
 class Model:
@@ -119,7 +121,8 @@ class Model:
             ],
         )
 
-        model.fit(self.train_ds, epochs=10, validation_data=self.test_ds)
+        history = model.fit(self.train_ds, epochs=10, validation_data=self.test_ds)
+        plot_history(history=history)
 
         return model
 
@@ -127,25 +130,27 @@ class Model:
         class_weights = class_weight.compute_class_weight(
             "balanced",
             classes=np.unique(self.y_train),
-            y=np.argmax(self.y_train, axis=1),
+            y=(self.y_train> 0.5).astype("int32").reshape(-1),
         )
         class_weights = dict(enumerate(class_weights))
+        print("class_weights")
+        print(self.class_names)
+        print(class_weights)
         # class_weights[0] = class_weights[0] * 12.5
 
         stop_early = tf.keras.callbacks.EarlyStopping(
-            mode="max",
             monitor="val_binary_accuracy",
-            patience=3,
+            patience=8,
             restore_best_weights=True,
             verbose=1,
         )
 
         reduce_learning_rate = tf.keras.callbacks.ReduceLROnPlateau(
-            factor=0.01,
+            cooldown=5,
+            factor=0.001,
             min_delta=0.01,
-            mode="min",
-            monitor="val_loss",
-            patience=5,
+            monitor="val_binary_accuracy",
+            patience=8,
             verbose=1,
         )
 
@@ -165,7 +170,7 @@ class Model:
         model.summary()
 
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
             loss='binary_crossentropy',
             metrics=[
                 tf.keras.metrics.BinaryAccuracy(),
@@ -174,15 +179,18 @@ class Model:
             ],
         )
 
-        model.fit(
-            self.train_ds,
+        history = model.fit(
+            self.x_train,
+            self.y_train,            
             batch_size=self.batch_size,
             callbacks=[stop_early, reduce_learning_rate, model_save],
             class_weight=class_weights,
             epochs=epochs,
-            steps_per_epoch=int(len(self.x_train)/self.batch_size),
-            validation_data=(self.test_ds),
+            steps_per_epoch=int(math.ceil(len(self.x_train)/self.batch_size)),
+            validation_data=(self.x_test, self.y_test),
         )
+
+        plot_history(history=history)
 
         print("\n\033[92mTraining done !\033[0m")
 

@@ -9,12 +9,12 @@ class Dataset:
     def __init__(
         self,
         dir_path,
-        validation_split=None,
-        subset=None,
-        color_mode="grayscale",
         batch_size=32,
+        color_mode="grayscale",
         image_size=(180, 180),
         label_mode="categorical",
+        subset=None,
+        validation_split=None,
     ):
         self.batch_size = batch_size
         self.class_names = None

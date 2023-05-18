@@ -53,8 +53,8 @@ class ModelLoader:
 
         if binary:
             (
-                test_binary_accuracy,
                 test_loss,
+                test_binary_accuracy,
                 test_precision,
                 test_recall,
             ) = self.loaded_model.evaluate(self.x_test, self.y_test, verbose=2)

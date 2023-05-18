@@ -108,3 +108,26 @@ def plot_roc_curve(y_true, y_pred_probs, class_names, binary=False):
     plt.title("Receiver Operating Characteristic curve")
     plt.legend(loc="lower right")
     plt.show()
+
+
+def plot_history(history):
+    # Plot loss
+    plt.figure(figsize=(12,6))
+    plt.subplot(1,2,1)
+    plt.plot(history.history['loss'], label='Training Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.title('Losses')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    # Plot accuracy
+    plt.subplot(1,2,2)
+    plt.plot(history.history['binary_accuracy'], label='Training Accuracy')
+    plt.plot(history.history['val_binary_accuracy'], label='Validation Accuracy')
+    plt.title('Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
