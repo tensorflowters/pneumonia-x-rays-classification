@@ -9,9 +9,9 @@ print("\033[91m=================================================================
 custom_objects = {"ConcatenationLayer": ConcatenationLayer}
 
 model = ModelLoader(
-    btch_size=16, 
+    btch_size=32, 
     color="rgb", 
-    img_size=(180, 180), 
+    img_size=(256, 256), 
     label_mode="binary"
 )
 model.load(
@@ -22,7 +22,7 @@ model.evaluate(binary=True)
 model.predict(
     binary=True,
     color="rgb",
-    img_size=(180, 180),
+    img_size=(256, 256),
 )
 
 print("\n\033[91m=================================================================\033[0m")
