@@ -2,4 +2,6 @@
 **.local
 **/**.h5
 **/**.tf-data
+# **/**models
 hypertunning_logs
+data
