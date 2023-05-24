@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TensorFlow.js Model 2 Inferencing</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+</head>
+<body>
+    <h1>TensorFlow.js Model 2 Inferencing</h1>
+    <input type="file" id="upload" />
+    <p id="response"></p>
+
+    <script>
+        async function run() {
+            const model = await tf.loadLayersModel('http://localhost:8000/notebooks/2_cross_validation/web_inference/model.json');
+
+            document.getElementById('upload').addEventListener('change', async function(e) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(e.target.files[0]);
+                img.width = 180;
+                img.height = 180; 
+                await img.decode();
+
+                let tensor = tf.browser.fromPixels(img)
+                    .resizeNearestNeighbor([180, 180])
+                    .toFloat()
+                    .mean(2)
+                    .expandDims(2)
+                    .expandDims();
+
+
+                const classNames = ["normal", "pneumonia"];
+                const pred = model.predict(tensor);
+
+                tfToArray = pred.arraySync()
+
+                document.getElementById("response").innerText = `This x-ray is ${classNames[tfToArray[0].indexOf(1)]}`
+            });
+        }
+
+        run();
+    </script>
+</body>
+</html>

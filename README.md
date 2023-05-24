@@ -2,33 +2,6 @@
 
 &nbsp;
 
-## Requirements
-
-- Use a **train-validation-test** procedure
-
-- Use a **cross validation** procedure, compare your results with a simple train test split
-
-- Use one of the datasets to **tune** your algorithms
-
-- Explore and test various **methods** and **compare results** (optimization, feature engineering, metrics, PCA)
-
-> Using a **clear and concise** way to present results should always preval
-
-&nbsp;
-
-## Deliveries
-
-1. Technical documents
-    - a Jupyter notebook-like file, containing code and text, possibly graphics
-    - a html-file to prove our results without rerunning the code
-
-2. Synthesis document
-    - a pdf file to sum up our results and figures
-
-> There are ways to save a trained algorithm and load it afterwards in order to obtain the same results when you run it again !
-
-&nbsp;
-
 ## Metrics
 
 After implementing these methods, we'll compare their performances using metrics such as:
