@@ -1,4 +1,4 @@
-# Zoidberg 2.0 - Development version
+# Pnemonia x-rays classification
 
 &nbsp;
 
