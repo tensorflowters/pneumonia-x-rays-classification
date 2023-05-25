@@ -7,17 +7,21 @@ import keras_tuner as kt
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.layers as ly
 import tensorflow.keras.applications as app
+import tensorflow.keras.layers as ly
 import tensorflow.keras.regularizers as reg
-from dotenv import load_dotenv
-from sklearn.model_selection import KFold
-from sklearn.utils import class_weight
-# PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-# sys.path.append(PROJECT_ROOT)
 from data_vizualisation.display import metrics
 from dataset_builder.build import Dataset
-from logger.log import text_info, text_success, title_important, title_info
+from dotenv import load_dotenv
+from logger.log import (
+    text_info,
+    text_success,
+    text_warning,
+    title_important,
+    title_info,
+)
+from sklearn.model_selection import KFold
+from sklearn.utils import class_weight
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE"))
 METRICS_DIR = pathlib.Path(os.getenv("METRICS_DIR")).absolute()
@@ -92,13 +96,13 @@ class Model:
             min_delta=0.01,
             mode="max",
             monitor="binary_accuracy",
-            patience=4,
+            patience=6,
             verbose=1,
         )
 
         callback_checkpoint = tf.keras.callbacks.ModelCheckpoint(
             MODEL_DIR.joinpath(
-                f"saved_models/trainded/checkpoints/model_7_checkpoint_{datetime.utcnow().isoformat()}.keras"
+                f"checkpoints/model_7_checkpoint_{datetime.utcnow().isoformat()}.keras"
             ),
             mode="max",
             monitor="val_binary_accuracy",
@@ -127,7 +131,7 @@ class Model:
 
     def build(self):
         channel = 1 if self.img_color == "grayscale" else 3
-        
+
         input_shape = (self.img_size, self.img_size, channel)
 
         input_layer = ly.Input(shape=input_shape)
@@ -157,12 +161,9 @@ class Model:
         for layer in resnet50.layers:
             layer.trainable = False
 
-
         augmentation_layer = tf.keras.Sequential(
             [
-                ly.RandomRotation(
-                    0.3, input_shape=input_shape
-                ),
+                ly.RandomRotation(0.3, input_shape=input_shape),
                 ly.RandomZoom(0.2),
                 ly.RandomTranslation((-0.1, 0.1), (-0.1, 0.1)),
             ]
@@ -174,9 +175,7 @@ class Model:
         vgg16_outputs = ly.GlobalAveragePooling2D()(vgg16_outputs)
 
         inception_v3_outputs = inception_v3(augmented_input_layer)
-        inception_v3_outputs = ly.GlobalAveragePooling2D()(
-            inception_v3_outputs
-        )
+        inception_v3_outputs = ly.GlobalAveragePooling2D()(inception_v3_outputs)
 
         resnet50_outputs = resnet50(augmented_input_layer)
         resnet50_outputs = ly.GlobalAveragePooling2D()(resnet50_outputs)
@@ -219,7 +218,14 @@ class Model:
             self.x_train,
             self.y_train,
             batch_size=self.batch_size,
-            callbacks=[self.callback_reduce_learning_rate, self.callback_stop_early],
+            callbacks=[
+                self.callback_reduce_learning_rate,
+                self.callback_stop_early,
+                tf.keras.callbacks.TensorBoard(
+                     log_dir="tensor_logs/"+ datetime.now().strftime("%Y%m%d-%H%M%S"),
+                    histogram_freq=1,
+                ),
+            ],
             class_weight=self.class_weights,
             epochs=self.batch_size,
             shuffle=True,
@@ -231,6 +237,12 @@ class Model:
             self.y_test,
             batch_size=1,
             verbose=1,
+            callbacks=[
+                tf.keras.callbacks.TensorBoard(
+                     log_dir="tensor_logs/"+datetime.now().strftime("%Y%m%d-%H%M%S"),
+                    histogram_freq=1,
+                )
+            ],
         )
 
         self.model = model
@@ -242,7 +254,9 @@ class Model:
         fold_number = 1
 
         for train, test in kfold.split(self.x_train, self.y_train):
-            title_important(message="STARTING RESNET_50, VGG_16 and INCEPTION_V3 PRE-TRAINING")
+            title_important(
+                message="STARTING RESNET_50, VGG_16 and INCEPTION_V3 PRE-TRAINING"
+            )
 
             train_images, val_images = self.x_train[train], self.x_train[test]
             train_labels, val_labels = self.y_train[train], self.y_train[test]
@@ -253,7 +267,9 @@ class Model:
 
             print("\033[0m")
 
-            title_important(message="PRE-TRAINING DONE FOR RESNET_50, VGG_16 and INCEPTION_V3")
+            title_important(
+                message="PRE-TRAINING DONE FOR RESNET_50, VGG_16 and INCEPTION_V3"
+            )
             title_important(message=f"STARTING TRAINING K-FOLD N°{fold_number}")
 
             for layer in pretrained_model.layers:
@@ -289,6 +305,10 @@ class Model:
                     self.callback_stop_early,
                     self.callback_reduce_learning_rate,
                     self.callback_checkpoint,
+                    tf.keras.callbacks.TensorBoard(
+                         log_dir="tensor_logs/"+datetime.now().strftime("%Y%m%d-%H%M%S"),
+                        histogram_freq=1,
+                    ),
                 ],
                 class_weight=self.class_weights,
                 epochs=epochs,
@@ -297,7 +317,16 @@ class Model:
             )
 
             self.scores = model.evaluate(
-                self.x_test, self.y_test, batch_size=1, verbose=1
+                self.x_test,
+                self.y_test,
+                batch_size=1,
+                verbose=1,
+                callbacks=[
+                    tf.keras.callbacks.TensorBoard(
+                         log_dir="tensor_logs/"+datetime.now().strftime("%Y%m%d-%H%M%S"),
+                        histogram_freq=1,
+                    )
+                ],
             )
 
             self.fold_acc.append(self.scores[1] * 100)
@@ -308,7 +337,7 @@ class Model:
             title_important(message=f"TRAINING FOR K-FOLD N°{fold_number} DONE!")
 
             text_warning(message=f"Saving model n°{fold_number}...")
-            
+
             self.model.save(MODEL_DIR.joinpath(f"model_7_fold_{fold_number}.keras"))
 
             text_success(message=f"Saving done !")
@@ -325,22 +354,22 @@ class Model:
             fold_number = fold_number + 1
 
         print("\nScore per fold:")
-        
+
         for i in range(0, len(self.fold_acc)):
             print(
                 "\n------------------------------------------------------------------------"
             )
-            
+
             print(
                 f"> Fold {i+1} - Loss: {self.fold_loss[i]} - Accuracy: {self.fold_acc[i]}%"
             )
-            
+
         title_success(message="AVERAGE SCORES FOR ALL FOLDS")
-        
+
         print(
             f"> Average accuracy: {np.mean(self.fold_acc)} (+- {np.std(self.fold_acc)})"
         )
-        
+
         print(f"> Average loss: {np.mean(self.fold_loss)}")
-        
+
         title_important(message="TRAINING DONE")

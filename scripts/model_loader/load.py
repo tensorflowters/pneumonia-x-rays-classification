@@ -68,7 +68,17 @@ class ModelLoader:
                 test_binary_accuracy,
                 test_precision,
                 test_recall,
-            ) = self.loaded_model.evaluate(self.x_test, self.y_test, verbose=2)
+            ) = self.loaded_model.evaluate(
+                self.x_test,
+                self.y_test,
+                verbose=2,
+                callbacks=[
+                    tf.keras.callbacks.TensorBoard(
+                         log_dir="tensor_logs/"+datetime.now().strftime("%Y%m%d-%H%M%S"),
+                        histogram_freq=1,
+                    )
+                ],
+            )
 
             text_info(message=f"Evaluation loss is: {test_loss}")
             text_info(message=f"Evaluation binary accurancy is: {test_binary_accuracy}")
@@ -80,14 +90,26 @@ class ModelLoader:
                 test_categorical_accuracy,
                 test_precision,
                 test_recall,
-            ) = self.loaded_model.evaluate(self.x_test, self.y_test, verbose=2)
+            ) = self.loaded_model.evaluate(
+                self.x_test,
+                self.y_test,
+                verbose=2,
+                callbacks=[
+                    tf.keras.callbacks.TensorBoard(
+                         log_dir="tensor_logs/"+datetime.now().strftime("%Y%m%d-%H%M%S"),
+                        histogram_freq=1,
+                    )
+                ],
+            )
             text_info(message=f"Evaluation loss is: {test_loss}")
-            text_info(message=f"Evaluation categorical accurancy is: {test_categorical_accuracy}")
+            text_info(
+                message=f"Evaluation categorical accurancy is: {test_categorical_accuracy}"
+            )
             text_info(message=f"Evaluation precision accurancy is: {test_precision}")
             text_info(message=f"Evaluation recall accurancy is: {test_recall}")
 
         predictions = self.loaded_model.predict(self.x_test)
-        
+
         y_test = []
         y_pred = []
 
@@ -122,7 +144,9 @@ class ModelLoader:
             interactive=self.interactive_reports,
         )
 
-        text_info(message=f"Classification Report:\n{classification_report(y_test, y_pred, target_names=self.class_names, zero_division=0)}")
+        text_info(
+            message=f"Classification Report:\n{classification_report(y_test, y_pred, target_names=self.class_names, zero_division=0)}"
+        )
 
     def predict(self, color="grayscale", img_size=(256, 256), binary=False):
         num_cols = 4
@@ -162,8 +186,6 @@ class ModelLoader:
                         self.class_names[np.argmax(score)], 100 * np.max(score)
                     )
                 )
-        plt.savefig(
-            self.path_to_register_charts.joinpath("evaluation/predictions.png")
-        )
+        plt.savefig(self.path_to_register_charts.joinpath("evaluation/predictions.png"))
         if self.interactive_reports:
             plt.show()

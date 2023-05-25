@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 import tensorflowjs as tfjs
-
+import tensorflow as tf
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.append(PROJECT_ROOT)
 from dotenv import load_dotenv
@@ -18,6 +18,8 @@ load_dotenv(pathlib.Path("./../configuration/.env"))
 PYTHON_VERSION = os.getenv("PYTHON_VERSION")
 TRAINING_MODE = int(os.getenv("TRAINING_MODE"))
 TEST_MODE = int(os.getenv("TEST_MODE"))
+OVERRIDE_MODE = int(os.getenv("OVERRIDE_MODE"))
+OVERRIDE_FILE = os.getenv(f"OVERRIDE_FILE")
 EVAL_LOG_FILE = os.getenv(f"EVAL_LOG_FILE")
 TRAIN_LOG_FILE = os.getenv(f"TRAIN_LOG_FILE")
 BATCH_SIZE = int(os.getenv(f"BATCH_SIZE"))
@@ -48,6 +50,7 @@ if TRAINING_MODE:
 else:
     METRICS_DIR = pathlib.Path(os.getenv("METRICS_DIR")).absolute()
     DIR = pathlib.Path(os.getenv("DIR")).absolute()
+    SAVED_DIR = pathlib.Path(os.getenv("SAVED_DIR")).absolute()
     WEB_DIR = pathlib.Path(os.getenv("WEB_DIR")).absolute()
 
     title_important("INFERENCE LOGS")
@@ -62,14 +65,17 @@ else:
     )
 
     custom_layer = {"ConcatenationLayer": MergeLayer, "MergeLayer": MergeLayer}
-
-    # if(OVERRIDE_BEST):
-    #     model_loader.load(OVERRIDE_BEST_FILE_NAME, custom_objects=custom_layer,)
-    # else:
-    model_loader.load(
-        DIR.joinpath(f"model_fold_{BEST_ID}.keras").absolute(),
-        custom_objects=custom_layer,
-    )
+    
+    if OVERRIDE_MODE:
+        model_loader.load(
+            pathlib.Path(OVERRIDE_FILE).absolute(),
+            custom_objects=custom_layer,
+        )
+    else:
+        model_loader.load(
+            SAVED_DIR.joinpath(f"model_fold_{BEST_ID}.keras").absolute(),
+            custom_objects=custom_layer,
+        )
 
     model_loader.evaluate(batch_size=1, binary=CLASS_TYPE == "binary")
 

@@ -3,5 +3,6 @@
 **/**.h5
 **/**.tf-data
 **/**trained
+tensor_logs
 hypertunning_logs
 data
