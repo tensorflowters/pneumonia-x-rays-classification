@@ -4,13 +4,12 @@ import seaborn as sns
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 from sklearn.preprocessing import label_binarize
 
-
 COLORS = ["#56f6ff", "#e32440"]
 PLOT_WIDTH = 20
 PLOT_HEIGHT = 10
 
 
-def plot_distribution(labels, dataset_name, path_to_register: str, interactive=True):
+def distribution(labels, dataset_name, path_to_register: str, interactive=True):
     plt.figure(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
 
     sns.set_style("whitegrid")
@@ -29,9 +28,7 @@ def plot_distribution(labels, dataset_name, path_to_register: str, interactive=T
         plt.show()
 
 
-def plot_mean(
-    labels, class_names, dataset_name, path_to_register: str, interactive=True
-):
+def mean(labels, class_names, dataset_name, path_to_register: str, interactive=True):
     bar_width = 0.25
 
     unique_labels = np.unique(labels)
@@ -71,7 +68,7 @@ def plot_mean(
         plt.show()
 
 
-def plot_confusion_matrix(
+def confusion_matrix(
     labels_true, labels_pred, class_names, path_to_register: str, interactive=True
 ):
     matrix = confusion_matrix(labels_true, labels_pred)
@@ -101,7 +98,7 @@ def plot_confusion_matrix(
         plt.show()
 
 
-def plot_roc_curve(
+def roc_curve(
     y_true,
     y_pred_probs,
     class_names,
@@ -164,7 +161,7 @@ def plot_roc_curve(
         plt.show()
 
 
-def plot_history(
+def metrics(
     history,
     path_to_register: str,
     interactive=True,

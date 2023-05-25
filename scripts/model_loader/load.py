@@ -1,25 +1,25 @@
-import os
 import math
+import os
 import pathlib
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
+from data_vizualisation.display import confusion_matrix, roc_curve
 from sklearn.metrics import classification_report
-
-from utils.x_ray_data_viz import plot_confusion_matrix, plot_roc_curve
-from utils.x_ray_dataset_builder import Dataset
+from dataset_builder.build import Dataset
+from logger.log import text_info, text_success, title_important, title_info
 
 
 class ModelLoader:
     def __init__(
         self,
-        batch_size=40,
-        color="grayscale",
-        img_size=256,
-        label_mode="binary",
-        path_to_register_charts: str = None,
+        batch_size: int = 32,
+        color: str = "grayscale",
+        img_size: int = 256,
         interactive_reports: bool = True,
+        label_mode: str = "binary",
+        path_to_register_charts: str = None,
     ):
         pred_list = os.listdir("data/prediction/")
 
@@ -49,7 +49,7 @@ class ModelLoader:
         self.y_test = test_ds.y_dataset
 
     def load(self, model_pathname, **kwargs):
-        print("\n\033[94mModel loading...\033[0m")
+        text_info(message="Model loading...")
 
         self.loaded_model = tf.keras.models.load_model(model_pathname, **kwargs)
 
@@ -57,10 +57,10 @@ class ModelLoader:
             [self.loaded_model, tf.keras.layers.Softmax()]
         )
 
-        print("\n\033[92mModel successfully loaded!\033[0m")
+        text_success(message="Model successfully loaded!")
 
     def evaluate(self, batch_size: int = 32, binary=False):
-        print("\n\033[94mEvaluating model...\033[0m\n")
+        text_info(message="Model evaluation...")
 
         if binary:
             (
@@ -70,29 +70,24 @@ class ModelLoader:
                 test_recall,
             ) = self.loaded_model.evaluate(self.x_test, self.y_test, verbose=2)
 
-            print("\n\033[94mEvaluation loss is: %s\033[0m" % (test_loss))
-            print(
-                "\n\033[94mEvaluation binary accurancy is: %s\033[0m"
-                % (test_binary_accuracy)
-            )
-            print("\n\033[94mEvaluation precision is: %s\033[0m" % (test_precision))
-            print("\n\033[94mEvaluation recall is: %s\n\033[0m" % (test_recall))
+            text_info(message=f"Evaluation loss is: {test_loss}")
+            text_info(message=f"Evaluation binary accurancy is: {test_binary_accuracy}")
+            text_info(message=f"Evaluation precision accurancy is: {test_precision}")
+            text_info(message=f"Evaluation recall accurancy is: {test_recall}")
         else:
             (
                 test_loss,
-                binary_accuracy,
+                test_categorical_accuracy,
                 test_precision,
                 test_recall,
             ) = self.loaded_model.evaluate(self.x_test, self.y_test, verbose=2)
-            print("\n\033[94mEvaluation loss is: %s\033[0m" % (test_loss))
-            print(
-                "\n\033[94mEvaluation binary accurancy is: %s\033[0m"
-                % (binary_accuracy)
-            )
-            print("\n\033[94mEvaluation precision is: %s\033[0m" % (test_precision))
-            print("\n\033[94mEvaluation recall is: %s\n\033[0m" % (test_recall))
+            text_info(message=f"Evaluation loss is: {test_loss}")
+            text_info(message=f"Evaluation categorical accurancy is: {test_categorical_accuracy}")
+            text_info(message=f"Evaluation precision accurancy is: {test_precision}")
+            text_info(message=f"Evaluation recall accurancy is: {test_recall}")
 
         predictions = self.loaded_model.predict(self.x_test)
+        
         y_test = []
         y_pred = []
 
@@ -102,37 +97,32 @@ class ModelLoader:
             y_test = np.argmax(self.y_test, axis=1)
 
         if binary:
-            y_pred = (predictions > 0.5).astype(int).reshape(-1)  # this line is updated
+            y_pred = (predictions > 0.5).astype(int).reshape(-1)
         else:
             y_pred = np.argmax(predictions, axis=1)
 
-        plot_confusion_matrix(
+        confusion_matrix(
             y_test,
             y_pred,
             class_names=self.class_names,
             path_to_register=self.path_to_register_charts.joinpath(
-                "evaluation_metrics/confusion_matrix.png"
+                "metrics/evaluation/confusion_matrix.png"
             ),
             interactive=self.interactive_reports,
         )
 
-        plot_roc_curve(
+        roc_curve(
             self.y_test,
             predictions,
             class_names=self.class_names,
             binary=self.label_mode == "binary",
             path_to_register=self.path_to_register_charts.joinpath(
-                "evaluation_metrics/roc_curve.png"
+                "metrics/evaluation/roc_curve.png"
             ),
             interactive=self.interactive_reports,
         )
 
-        print("\033[94m\nClassification Report:\033[0m")
-        print(
-            classification_report(
-                y_test, y_pred, target_names=self.class_names, zero_division=0
-            )
-        )
+        text_info(message=f"Classification Report:\n{classification_report(y_test, y_pred, target_names=self.class_names, zero_division=0)}")
 
     def predict(self, color="grayscale", img_size=(256, 256), binary=False):
         num_cols = 4
@@ -173,7 +163,7 @@ class ModelLoader:
                     )
                 )
         plt.savefig(
-            self.path_to_register_charts.joinpath("evaluation_metrics/predictions.png")
+            self.path_to_register_charts.joinpath("metrics/evaluation/predictions.png")
         )
         if self.interactive_reports:
             plt.show()

@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
-from utils.x_ray_data_viz import plot_distribution, plot_mean
+from data_vizualisation.display import distribution, mean
 
 
 class Dataset:
@@ -111,6 +110,7 @@ class Dataset:
         self, dataset_name: str, path_to_register: str, interactive=True
     ):
         total_images = len(self.x_dataset)
+        
         batch_size = self.batch_size
 
         total_batches = total_images // batch_size
@@ -150,13 +150,13 @@ class Dataset:
         for index in labels_index:
             labels.append(self.class_names[index])
 
-        plot_distribution(
+        display.distribution(
             labels, dataset_name, path_to_register, interactive=interactive
         )
 
     def display_mean(self, dataset_name, path_to_register: str, interactive=True):
         labels = np.argmax(self.y_dataset, axis=1)
-        plot_mean(
+        display.mean(
             labels,
             self.class_names,
             dataset_name,

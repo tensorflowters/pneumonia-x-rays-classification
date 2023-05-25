@@ -7,30 +7,31 @@ import keras_tuner as kt
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import tf.keras.layers as ly
+import tf.keras.applications as app
+import tf.keras.regularizers as reg
 from dotenv import load_dotenv
 from sklearn.model_selection import KFold
 from sklearn.utils import class_weight
+# PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+# sys.path.append(PROJECT_ROOT)
+from data_vizualisation.display import metrics
+from dataset_builder.build import Dataset
+from logger.log import text_info, text_success, title_important, title_info
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-sys.path.append(PROJECT_ROOT)
-
-from utils.x_ray_data_viz import plot_history
-from utils.x_ray_dataset_builder import Dataset
-
-MODEL_ID = os.getenv("MODEL_ID")
-BATCH_SIZE = int(os.getenv(f"MODEL_{MODEL_ID}_BATCH_SIZE"))
-CHART_DIR = pathlib.Path(os.getenv(f"MODEL_{MODEL_ID}_CHART_DIR")).absolute()
-MODEL_DIR = pathlib.Path(os.getenv(f"MODEL_{MODEL_ID}_MODEL_DIR")).absolute()
-IMG_COLOR = os.getenv(f"MODEL_{MODEL_ID}_IMG_COLOR")
-IMG_SIZE = int(os.getenv(f"MODEL_{MODEL_ID}_IMG_SIZE"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE"))
+METRICS_DIR = pathlib.Path(os.getenv("METRICS_DIR")).absolute()
+MODEL_DIR = pathlib.Path(os.getenv("DIR")).absolute()
+IMG_COLOR = os.getenv("IMG_COLOR")
+IMG_SIZE = int(os.getenv("IMG_SIZE"))
 
 
-class MergeLayer(tf.keras.layers.Layer):
+class MergeLayer(ly.Layer):
     def __init__(self, **kwargs):
         super(MergeLayer, self).__init__(**kwargs)
 
     def call(self, inputs):
-        return tf.keras.layers.Concatenate()(inputs)
+        return ly.Concatenate()(inputs)
 
 
 class Model:
@@ -97,7 +98,7 @@ class Model:
 
         callback_checkpoint = tf.keras.callbacks.ModelCheckpoint(
             MODEL_DIR.joinpath(
-                f"checkpoints/model_7_checkpoint_{datetime.utcnow().isoformat()}.keras"
+                f"saved_models/trainded/checkpoints/model_7_checkpoint_{datetime.utcnow().isoformat()}.keras"
             ),
             mode="max",
             monitor="val_binary_accuracy",
@@ -107,41 +108,43 @@ class Model:
         )
 
         self.batch_size = batch_size
-        self.callback_stop_early = callback_stop_early
-        self.callback_reduce_learning_rate = callback_reduce_learning_rate
         self.callback_checkpoint = callback_checkpoint
+        self.callback_reduce_learning_rate = callback_reduce_learning_rate
+        self.callback_stop_early = callback_stop_early
         self.class_names = train_ds.class_names
         self.class_weights = class_weights
         self.fold_acc = []
         self.fold_loss = []
-        self.img_size = img_size
         self.img_color = img_color
+        self.img_size = img_size
         self.interactive_reports = interactive_reports
         self.model = None
         self.scores = []
-        self.x_train = train_ds.x_dataset
         self.x_test = test_ds.x_dataset
-        self.y_train = train_ds.y_dataset
+        self.x_train = train_ds.x_dataset
         self.y_test = test_ds.y_dataset
+        self.y_train = train_ds.y_dataset
 
     def build(self):
-        input_shape = (self.img_size, self.img_size, 3)
+        channel = 1 if self.img_color == "grayscale" else 3
+        
+        input_shape = (self.img_size, self.img_size, channel)
 
-        input_layer = tf.keras.layers.Input(shape=input_shape)
+        input_layer = ly.Input(shape=input_shape)
 
-        vgg16 = tf.keras.applications.vgg16.VGG16(
+        vgg16 = app.vgg16.VGG16(
             include_top=False,
             input_shape=input_shape,
             weights="imagenet",
         )
 
-        inception_v3 = tf.keras.applications.inception_v3.InceptionV3(
+        inception_v3 = app.inception_v3.InceptionV3(
             include_top=False,
             input_shape=input_shape,
             weights="imagenet",
         )
 
-        resnet50 = tf.keras.applications.resnet50.ResNet50(
+        resnet50 = app.resnet50.ResNet50(
             include_top=False,
             input_shape=input_shape,
             weights="imagenet",
@@ -154,48 +157,47 @@ class Model:
         for layer in resnet50.layers:
             layer.trainable = False
 
-        channels = 1 if self.img_color == "grayscale" else 3
 
         augmentation_layer = tf.keras.Sequential(
             [
-                tf.keras.layers.RandomRotation(
-                    0.3, input_shape=(IMG_SIZE, IMG_SIZE, channels)
+                ly.RandomRotation(
+                    0.3, input_shape=input_shape
                 ),
-                tf.keras.layers.RandomZoom(0.2),
-                tf.keras.layers.RandomTranslation((-0.1, 0.1), (-0.1, 0.1)),
+                ly.RandomZoom(0.2),
+                ly.RandomTranslation((-0.1, 0.1), (-0.1, 0.1)),
             ]
         )
 
         augmented_input_layer = augmentation_layer(input_layer)
 
         vgg16_outputs = vgg16(augmented_input_layer)
-        vgg16_outputs = tf.keras.layers.GlobalAveragePooling2D()(vgg16_outputs)
+        vgg16_outputs = ly.GlobalAveragePooling2D()(vgg16_outputs)
 
         inception_v3_outputs = inception_v3(augmented_input_layer)
-        inception_v3_outputs = tf.keras.layers.GlobalAveragePooling2D()(
+        inception_v3_outputs = ly.GlobalAveragePooling2D()(
             inception_v3_outputs
         )
 
         resnet50_outputs = resnet50(augmented_input_layer)
-        resnet50_outputs = tf.keras.layers.GlobalAveragePooling2D()(resnet50_outputs)
+        resnet50_outputs = ly.GlobalAveragePooling2D()(resnet50_outputs)
 
         trained_models_layer = MergeLayer()(
             [vgg16_outputs, inception_v3_outputs, resnet50_outputs]
         )
 
-        model_outputs = tf.keras.layers.BatchNormalization()(trained_models_layer)
-        model_outputs = tf.keras.layers.Dense(
-            256, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.0001)
+        model_outputs = ly.BatchNormalization()(trained_models_layer)
+        model_outputs = ly.Dense(
+            256, activation="relu", kernel_regularizer=reg.l2(0.0001)
         )(model_outputs)
-        model_outputs = tf.keras.layers.Dropout(0.5)(model_outputs)
+        model_outputs = ly.Dropout(0.5)(model_outputs)
 
-        model_outputs = tf.keras.layers.BatchNormalization()(model_outputs)
-        model_outputs = tf.keras.layers.Dense(
-            128, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.001)
+        model_outputs = ly.BatchNormalization()(model_outputs)
+        model_outputs = ly.Dense(
+            128, activation="relu", kernel_regularizer=reg.l2(0.001)
         )(model_outputs)
-        model_outputs = tf.keras.layers.Dropout(0.7)(model_outputs)
+        model_outputs = ly.Dropout(0.7)(model_outputs)
 
-        model_outputs = tf.keras.layers.Dense(1, activation="sigmoid")(model_outputs)
+        model_outputs = ly.Dense(1, activation="sigmoid")(model_outputs)
 
         model = tf.keras.Model(inputs=input_layer, outputs=model_outputs)
 
@@ -240,43 +242,24 @@ class Model:
         fold_number = 1
 
         for train, test in kfold.split(self.x_train, self.y_train):
-            print(
-                "\033[91m"
-                "=================================================================\n"
-                "****STARTING RESNET_50, VGG_16 and INCEPTION_V3 PRE-TRAINING*****\n"
-                "================================================================="
-                "\033[0m"
-            )
+            title_important(message="STARTING RESNET_50, VGG_16 and INCEPTION_V3 PRE-TRAINING")
 
             train_images, val_images = self.x_train[train], self.x_train[test]
             train_labels, val_labels = self.y_train[train], self.y_train[test]
 
-            print("\033[96mBuilding model...\n")
+            text_info(message="Building model...")
 
             pretrained_model = self.build()
 
             print("\033[0m")
 
-            print(
-                "\n\033[91m"
-                "=================================================================\n"
-                "****PRE-TRAINING DONE FOR RESNET_50, VGG_16 and INCEPTION_V3*****\n"
-                "================================================================="
-                "\033[0m\n"
-            )
-
-            print(
-                "\033[91m"
-                "=================================================================\n"
-                f"**************STARTING TRAINING K-FOLD N°{fold_number}***********\n"
-                "================================================================="
-                "\033[0m"
-            )
+            title_important(message="PRE-TRAINING DONE FOR RESNET_50, VGG_16 and INCEPTION_V3")
+            title_important(message=f"STARTING TRAINING K-FOLD N°{fold_number}")
 
             for layer in pretrained_model.layers:
                 layer.trainable = True
 
-            print("\n\033[96mModel summary:\033[0m\n")
+            text_info(message="Model summary:")
 
             pretrained_model.summary()
 
@@ -322,24 +305,18 @@ class Model:
 
             print("\033[0m")
 
-            print(
-                "\n\033[91m"
-                "=================================================================\n"
-                f"**************TRAINING FOR K-FOLD N°{fold_number} DONE!**********\n"
-                "================================================================="
-                "\n\033[0m"
-            )
+            title_important(message=f"TRAINING FOR K-FOLD N°{fold_number} DONE!")
 
-            print(f"\n\033[91mSaving model n°{fold_number}...\033[0m")
+            text_warning(message=f"Saving model n°{fold_number}...")
             
             self.model.save(MODEL_DIR.joinpath(f"model_7_fold_{fold_number}.keras"))
 
-            print("\n\033[92mSaving done !\033[0m")
+            text_success(message=f"Saving done !")
 
-            plot_history(
+            metrics(history, path_to_register)(
                 history,
-                CHART_DIR.joinpath(
-                    f"training_metrics/training_loss_and_accuracy_fold_{fold_number}.png"
+                METRICS_DIR.joinpath(
+                    f"metrics/training/training_loss_and_accuracy_fold_{fold_number}.png"
                 ),
                 accuracy_metric="binary_accuracy",
                 interactive=self.interactive_reports,
@@ -347,29 +324,23 @@ class Model:
 
             fold_number = fold_number + 1
 
-        print("\nScore per fold")
+        print("\nScore per fold:")
+        
         for i in range(0, len(self.fold_acc)):
             print(
                 "\n------------------------------------------------------------------------"
             )
+            
             print(
                 f"> Fold {i+1} - Loss: {self.fold_loss[i]} - Accuracy: {self.fold_acc[i]}%"
             )
-        print(
-            f"""
-            \n\033[92m
-            =================================================================\\
-            ********************AVERAGE SCORES FOR ALL FOLDS*****************\\
-            =================================================================
-            \033[0m\n
-            """
-        )
+            
+        title_success(message="AVERAGE SCORES FOR ALL FOLDS")
+        
         print(
             f"> Average accuracy: {np.mean(self.fold_acc)} (+- {np.std(self.fold_acc)})"
         )
+        
         print(f"> Average loss: {np.mean(self.fold_loss)}")
-        print(
-            """\n\033[91m=================================================================
-            ****************************TRAINING DONE************************
-            =================================================================\033[0m\n"""
-        )
+        
+        title_important(message="TRAINING DONE")
