@@ -1,4 +1,4 @@
-def title_important(message: str) -> void:
+def title_important(message: str):
     print(
         "\n\033[91m"
         "=================================================================\n"
@@ -8,7 +8,7 @@ def title_important(message: str) -> void:
     )
 
 
-def title_success(message: str) -> void:
+def title_success(message: str):
     print(
         "\n\033[92m"
         "=================================================================\n"
@@ -18,7 +18,7 @@ def title_success(message: str) -> void:
     )
 
 
-def title_warning(message: str) -> void:
+def title_warning(message: str):
     print(
         "\n\033[93m"
         "=================================================================\n"
@@ -28,7 +28,7 @@ def title_warning(message: str) -> void:
     )
 
 
-def title_space(message: str) -> void:
+def title_space(message: str):
     print(
         "\n\033[95m"
         "=================================================================\n"
@@ -38,7 +38,7 @@ def title_space(message: str) -> void:
     )
 
 
-def title_info(message: str) -> void:
+def title_info(message: str):
     print(
         "\n\033[96m"
         "=================================================================\n"
@@ -48,21 +48,21 @@ def title_info(message: str) -> void:
     )
 
 
-def text_important(message: str) -> void:
+def text_important(message: str):
     print(f"\n\033[91m{message}\033[0m")
 
 
-def text_success(message: str) -> void:
+def text_success(message: str):
     print(f"\n\033[92m{message}\033[0m")
 
 
-def text_warning(message: str) -> void:
+def text_warning(message: str):
     print(f"\n\033[93m{message}\033[0m")
 
 
-def text_space(message: str) -> void:
+def text_space(message: str):
     print(f"\n\033[95m{message}\033[0m")
 
 
-def text_info(message: str) -> void:
+def text_info(message: str):
     print(f"\n\033[96m{message}\033[0m")

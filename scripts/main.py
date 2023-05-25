@@ -10,8 +10,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir
 sys.path.append(PROJECT_ROOT)
 from dotenv import load_dotenv
 from logger.log import text_info, title_important, title_info
-from utils.x_ray_model_loader import ModelLoader
-from x_ray_model_7 import MergeLayer, Model
+from model_builder.build import MergeLayer, Model
+from model_loader.load import ModelLoader
 
 load_dotenv(pathlib.Path("./../configuration/.env"))
 
@@ -21,7 +21,8 @@ TEST_MODE = int(os.getenv("TEST_MODE"))
 EVAL_LOG_FILE = os.getenv(f"EVAL_LOG_FILE")
 TRAIN_LOG_FILE = os.getenv(f"TRAIN_LOG_FILE")
 BATCH_SIZE = int(os.getenv(f"BATCH_SIZE"))
-CLASS_TYPE = os.getenv(f"CLASS_TYPE")
+BEST_ID = int(os.getenv(f"BEST_ID"))
+CLASS_TYPE = os.getenv("CLASS_TYPE")
 EPOCHS = int(os.getenv(f"EPOCHS"))
 IMG_COLOR = os.getenv(f"IMG_COLOR")
 IMG_SIZE = int(os.getenv(f"IMG_SIZE"))
@@ -43,6 +44,7 @@ if TRAINING_MODE:
     model.train(EPOCHS, K_FOLD)
 
     title_important(message="TRAINING LOGS")
+    
 else:
     METRICS_DIR = pathlib.Path(os.getenv("METRICS_DIR")).absolute()
     DIR = pathlib.Path(os.getenv("DIR")).absolute()

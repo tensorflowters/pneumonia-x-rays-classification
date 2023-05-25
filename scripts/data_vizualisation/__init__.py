@@ -1,1 +1,1 @@
-from data_vizualisation import plot
+from data_vizualisation import display

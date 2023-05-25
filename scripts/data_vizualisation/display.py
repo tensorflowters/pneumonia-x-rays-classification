@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from sklearn.metrics import auc, confusion_matrix, roc_curve
+import sklearn as sk
 from sklearn.preprocessing import label_binarize
 
 COLORS = ["#56f6ff", "#e32440"]
@@ -71,7 +71,7 @@ def mean(labels, class_names, dataset_name, path_to_register: str, interactive=T
 def confusion_matrix(
     labels_true, labels_pred, class_names, path_to_register: str, interactive=True
 ):
-    matrix = confusion_matrix(labels_true, labels_pred)
+    matrix = sk.metrics.confusion_matrix(labels_true, labels_pred)
 
     plt.figure(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
 
@@ -115,19 +115,19 @@ def roc_curve(
 
     for i in range(n_classes):
         if binary:
-            fpr, tpr, _ = roc_curve(y_true_bin, y_pred_probs)
-            roc_auc = auc(fpr, tpr)
+            fpr, tpr, _ = sk.metrics.roc_curve(y_true_bin, y_pred_probs)
+            roc_auc = sk.metrics.auc(fpr, tpr)
         else:
-            fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
-            roc_auc[i] = auc(fpr[i], tpr[i])
+            fpr[i], tpr[i], _ = sk.metrics.roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
+            roc_auc[i] = sk.metrics.auc(fpr[i], tpr[i])
     if binary:
-        fpr, tpr, thresholds = roc_curve(y_true, y_pred_probs)
-        roc_auc = auc(fpr, tpr)
+        fpr, tpr, thresholds = sk.metrics.roc_curve(y_true, y_pred_probs)
+        roc_auc = sk.metrics.auc(fpr, tpr)
     else:
-        fpr["micro"], tpr["micro"], _ = roc_curve(
+        fpr["micro"], tpr["micro"], _ = sk.metrics.roc_curve(
             y_true_bin.ravel(), y_pred_probs.ravel()
         )
-        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+        roc_auc["micro"] = sk.metrics.auc(fpr["micro"], tpr["micro"])
 
     plt.figure(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
 

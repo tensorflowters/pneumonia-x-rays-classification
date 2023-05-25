@@ -8,10 +8,10 @@ class Dataset:
     def __init__(
         self,
         dir_path: str,
-        batch_size=40,
-        color_mode="grayscale",
-        image_size=256,
-        label_mode="binary",
+        batch_size: int = 40,
+        color_mode: str = "rgb",
+        image_size: int = 150,
+        label_mode: str = "binary",
         subset=None,
         validation_split=None,
     ):
@@ -110,7 +110,7 @@ class Dataset:
         self, dataset_name: str, path_to_register: str, interactive=True
     ):
         total_images = len(self.x_dataset)
-        
+
         batch_size = self.batch_size
 
         total_batches = total_images // batch_size

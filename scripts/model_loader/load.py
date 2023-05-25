@@ -14,12 +14,12 @@ from logger.log import text_info, text_success, title_important, title_info
 class ModelLoader:
     def __init__(
         self,
-        batch_size: int = 32,
-        color: str = "grayscale",
-        img_size: int = 256,
-        interactive_reports: bool = True,
-        label_mode: str = "binary",
-        path_to_register_charts: str = None,
+        batch_size=32,
+        color="rgb",
+        img_size=256,
+        interactive_reports=True,
+        label_mode="binary",
+        path_to_register_charts=None,
     ):
         pred_list = os.listdir("data/prediction/")
 
@@ -106,7 +106,7 @@ class ModelLoader:
             y_pred,
             class_names=self.class_names,
             path_to_register=self.path_to_register_charts.joinpath(
-                "metrics/evaluation/confusion_matrix.png"
+                "evaluation/confusion_matrix.png"
             ),
             interactive=self.interactive_reports,
         )
@@ -117,7 +117,7 @@ class ModelLoader:
             class_names=self.class_names,
             binary=self.label_mode == "binary",
             path_to_register=self.path_to_register_charts.joinpath(
-                "metrics/evaluation/roc_curve.png"
+                "evaluation/roc_curve.png"
             ),
             interactive=self.interactive_reports,
         )
@@ -163,7 +163,7 @@ class ModelLoader:
                     )
                 )
         plt.savefig(
-            self.path_to_register_charts.joinpath("metrics/evaluation/predictions.png")
+            self.path_to_register_charts.joinpath("evaluation/predictions.png")
         )
         if self.interactive_reports:
             plt.show()

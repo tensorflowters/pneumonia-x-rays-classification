@@ -7,9 +7,9 @@ import keras_tuner as kt
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import tf.keras.layers as ly
-import tf.keras.applications as app
-import tf.keras.regularizers as reg
+import tensorflow.keras.layers as ly
+import tensorflow.keras.applications as app
+import tensorflow.keras.regularizers as reg
 from dotenv import load_dotenv
 from sklearn.model_selection import KFold
 from sklearn.utils import class_weight
